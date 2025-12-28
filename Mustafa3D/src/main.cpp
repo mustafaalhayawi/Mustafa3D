@@ -1,5 +1,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <cmath>
+#include <algorithm>
 
 int* gFrameBuffer;
 SDL_Window* gWindow;
@@ -31,16 +33,40 @@ void drawPixel(int x, int y, int color) {
 	gFrameBuffer[y * WINDOW_WIDTH + x] = color;
 }
 
+// Bresenham's line algorithm 
+void drawLine(int x1, int y1, int x2, int y2, int color) {
+	int dx = std::abs(x2 - x1);
+	int dy = std::abs(y2 - y1);
+	int step_x = (x1 < x2) ? 1 : -1;
+	int step_y = (y1 < y2) ? 1 : -1;
+
+	int err = dx - dy;
+
+	while (true) {
+		drawPixel(x1, y1, color);
+
+		if (x1 == x2 && y1 == y2) break;
+
+		int e2 = 2 * err;
+		if (e2 > -dy) {
+			err -= dy;
+			x1 += step_x;
+		}
+		if (e2 < dx) {
+			err += dx;
+			y1 += step_y;
+		}
+	}
+}
+
 void render() {
 	for (int i = 0; i < WINDOW_WIDTH * WINDOW_HEIGHT; i++) {
 		gFrameBuffer[i] = 0xFF;
 	}
 
-	for (int i = 0; i < 100; i++) {
-		for (int j = 0; j < 100; j++) {
-			drawPixel(j + 50, i + 50, 0xff0000ff);
-		}
-	}
+	drawLine(250, 387, 400, 127, 0xff0000ff);
+	drawLine(400, 127, 550, 387, 0xff0000ff);
+	drawLine(550, 387, 250, 387, 0xff0000ff);
 }
 
 void presentFrame() {
