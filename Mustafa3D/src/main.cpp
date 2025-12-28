@@ -10,6 +10,8 @@ SDL_Texture* gTexture;
 static int gDone;
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
+const int TARGET_FPS = 60;
+const int FRAME_DELAY = 1000 / TARGET_FPS;
 
 bool handleEvents() {
 	SDL_Event e;
@@ -83,13 +85,20 @@ void presentFrame() {
 }
 
 void loop() {
+	Uint64 frameStart = SDL_GetTicks();
+
 	if (!handleEvents()) {
 		gDone = 1;
 	}
 	else {
 		render();
 		presentFrame();
-		SDL_Delay(1);
+	}
+
+	Uint64 frameTime = SDL_GetTicks() - frameStart;
+
+	if (frameTime < FRAME_DELAY) {
+		SDL_Delay(FRAME_DELAY - (Uint32)frameTime);
 	}
 }
 
