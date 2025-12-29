@@ -33,9 +33,18 @@ void Primitives::createCube(Mesh& outMesh, float size) {
 	for (int i = 0; i < 36; i += 3) {
 		Triangle newTriangle;
 
-		newTriangle.vertex1 = indices[i];
-		newTriangle.vertex2 = indices[i + 1];
-		newTriangle.vertex3 = indices[i + 2];
+		int index1 = indices[i];
+		int index2 = indices[i + 1];
+		int index3 = indices[i + 2];
+
+		newTriangle.vertex1 = index1;
+		newTriangle.vertex2 = index2;
+		newTriangle.vertex3 = index3;
+
+		Vector3 vectorA = vertices[index3].position - vertices[index1].position;
+		Vector3 vectorB = vertices[index2].position - vertices[index1].position;
+
+		newTriangle.normal = Math::normalise(Math::crossProduct(vectorA, vectorB));
 
 		triangles.push_back(newTriangle);
 	}

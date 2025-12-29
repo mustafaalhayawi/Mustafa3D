@@ -9,19 +9,23 @@ const int TARGET_FPS = 60;
 const int FRAME_DELAY = 1000 / TARGET_FPS;
 
 void runLoop(Window& window, Renderer& renderer) {
+	Uint64 lastTime = SDL_GetTicks();
 
 	while (window.isOpen())
 	{
-		Uint64 frameStart = SDL_GetTicks();
+		Uint64 startTick = SDL_GetTicks();
+		float deltaTime = (startTick - lastTime) / 1000.0f;
+		lastTime = startTick;
 
 		window.handleEvents();
-		renderer.render();
+		renderer.render(deltaTime);
 		window.presentFrame(renderer.getBuffer());
 
-		Uint64 frameTime = SDL_GetTicks() - frameStart;
+		Uint64 endTick = SDL_GetTicks();
+		Uint64 frameDuration = endTick - startTick;
 
-		if (frameTime < FRAME_DELAY) {
-			SDL_Delay(FRAME_DELAY - (Uint32)frameTime);
+		if (frameDuration < FRAME_DELAY) {
+			SDL_Delay(FRAME_DELAY - (Uint32)frameDuration);
 		}
 	}
 }

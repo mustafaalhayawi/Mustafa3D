@@ -49,8 +49,10 @@ struct Vertex {
 	Vector3 position;
 };
 
+// normal vector goes in triangle for now for flat shading but will go in vertex later for smooth shading
 struct Triangle {
 	unsigned int vertex1, vertex2, vertex3;
+	Vector3 normal;
 };
 
 struct Mesh {

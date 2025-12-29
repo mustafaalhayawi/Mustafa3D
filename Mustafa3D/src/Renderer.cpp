@@ -36,14 +36,16 @@ void Renderer::clear(int color) {
 	}
 }
 
-void Renderer::render() {
+void Renderer::render(float deltaTime) {
 	clear(0xff000000);
 
-	Mesh cubeMesh;
-	Primitives::createCube(cubeMesh, 10.0f);
+	static Mesh cubeMesh;
+	if (cubeMesh.vertices.empty()) Primitives::createCube(cubeMesh, 10.0f);
 
-	drawMesh(cubeMesh, 0xff0000ff);
-	drawWireMesh(cubeMesh, 0xffffffff);
+	static Entity myCube(&cubeMesh);
+	myCube.update(deltaTime);
+	drawMesh(myCube, 0xff0000ff);
+	drawWireMesh(myCube, 0xffffffff);
 }
 
 ScreenPosition Renderer::spaceToScreen(Vector3 position) {
@@ -120,6 +122,7 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, int color)
 	}
 }
 
+// todo: update algorithm to be more efficient by using line scanning
 void Renderer::drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C, int color) {
 	ScreenPosition P = ScreenPosition(0, 0);
 
@@ -142,22 +145,17 @@ void Renderer::drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C
 	}
 }
 
-void Renderer::drawWireMesh(Mesh mesh, int color) {
+void Renderer::drawWireMesh(const Entity& entity, int color) {
 	std::unordered_set<std::pair<int, int>, EdgeHash> drawnEdges;
 
-	static float angle = 0.0f;
-	angle += 0.01f;
-
 	std::vector<ScreenPosition> screenPositions;
-	screenPositions.reserve(mesh.vertices.size());
-	for (const auto& vertex : mesh.vertices) {
-		Vector3 rotated = Math::rotateY(vertex.position, angle);
-		rotated = Math::rotateX(rotated, angle / 2);
-		screenPositions.push_back(spaceToScreen(rotated));
+	screenPositions.reserve(entity.worldMesh.vertices.size());
+	for (const auto& vertex : entity.worldMesh.vertices) {
+		screenPositions.push_back(spaceToScreen(vertex.position));
 	}
 
-	for (const auto& triangle : mesh.triangles) {
-		int indices[3] = { triangle.vertex1, triangle.vertex2, triangle.vertex3 };
+	for (const auto& triangle : entity.mesh->triangles) {
+		unsigned int indices[3] = { triangle.vertex1, triangle.vertex2, triangle.vertex3 };
 
 		for (int j = 0; j < 3; j++) {
 			int index1 = indices[j];
@@ -172,20 +170,15 @@ void Renderer::drawWireMesh(Mesh mesh, int color) {
 	}
 }
 
-void Renderer::drawMesh(Mesh& mesh, int color) {
-	static float angle = 0.0f;
-	angle += 0.01f;
-
+void Renderer::drawMesh(const Entity& entity, int color) {
 	std::vector<ScreenPosition> screenPositions;
-	screenPositions.reserve(mesh.vertices.size());
+	screenPositions.reserve(entity.worldMesh.vertices.size());
 
-	for (const auto& vertex : mesh.vertices) {
-		Vector3 rotated = Math::rotateY(vertex.position, angle);
-		rotated = Math::rotateX(rotated, angle / 2);
-		screenPositions.push_back(spaceToScreen(rotated));
+	for (const auto& vertex : entity.worldMesh.vertices) {
+		screenPositions.push_back(spaceToScreen(vertex.position));
 	}
 
-	for (const auto& triangle : mesh.triangles) {
+	for (const auto& triangle : entity.mesh->triangles) {
 		// convert world position vectors of vertices of triangle into screen position vectors
 		ScreenPosition A = screenPositions[triangle.vertex1];
 		ScreenPosition B = screenPositions[triangle.vertex2];

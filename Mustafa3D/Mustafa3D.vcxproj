@@ -138,6 +138,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Entity.cpp" />
     <ClCompile Include="src\Geometry.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Primitives.cpp" />
@@ -148,6 +149,7 @@
     <None Include=".wakatime-project" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Entity.h" />
     <ClInclude Include="include\Geometry.h" />
     <ClInclude Include="include\MathUtils.h" />
     <ClInclude Include="include\Primitives.h" />
