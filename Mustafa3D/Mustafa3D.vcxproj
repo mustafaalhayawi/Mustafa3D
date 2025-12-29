@@ -148,6 +148,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Geometry.h" />
+    <ClInclude Include="include\MathUtils.h" />
     <ClInclude Include="include\Primitives.h" />
     <ClInclude Include="include\Renderer.h" />
     <ClInclude Include="include\Window.h" />

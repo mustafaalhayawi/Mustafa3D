@@ -2,5 +2,5 @@
 #include "Geometry.h"
 
 namespace Primitives {
-	Mesh CreateCube(Mesh& outMesh, float size);
+	void createCube(Mesh& outMesh, float size);
 }

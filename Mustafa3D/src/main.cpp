@@ -4,6 +4,7 @@
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
+const float CAMERA_DISTANCE = 50.0f;
 const int TARGET_FPS = 60;
 const int FRAME_DELAY = 1000 / TARGET_FPS;
 
@@ -33,7 +34,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	Window window("Mustafa3D", WINDOW_WIDTH, WINDOW_HEIGHT);
-	Renderer renderer(WINDOW_WIDTH, WINDOW_HEIGHT);
+	Renderer renderer(WINDOW_WIDTH, WINDOW_HEIGHT, CAMERA_DISTANCE);
 
 	runLoop(window, renderer);
 

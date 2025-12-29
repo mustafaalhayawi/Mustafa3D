@@ -1,6 +1,10 @@
 #pragma once
 #include <vector>
 
+struct ScreenPosition {
+	int x, y;
+};
+
 struct Vector3 {
 	float x, y, z;
 

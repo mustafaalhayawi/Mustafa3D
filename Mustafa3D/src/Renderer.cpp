@@ -1,9 +1,26 @@
 #include "Renderer.h"
+#include "Primitives.h"
+#include "MathUtils.h"
+#include <vector>
+#include <unordered_set>
 #include <algorithm>
+#include <utility>
 
-Renderer::Renderer(int width, int height)
+namespace {
+	struct EdgeHash {
+		std::size_t operator()(const std::pair<int, int>& p) const {
+			auto h1 = std::hash<int>{}(p.first);
+			auto h2 = std::hash<int>{}(p.second);
+
+			return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+		}
+	};
+}
+
+Renderer::Renderer(int width, int height, float camera_distance)
 	: m_width(width),
-	  m_height(height)
+	  m_height(height),
+	  m_cameraDistance(camera_distance)
 {
 	m_frameBuffer = new int[width * height];
 }
@@ -20,45 +37,106 @@ void Renderer::clear(int color) {
 }
 
 void Renderer::render() {
-	drawLine(250, 387, 400, 127, 0xff0000ff);
-	drawLine(400, 127, 550, 387, 0xff0000ff);
-	drawLine(550, 387, 250, 387, 0xff0000ff);
+
+	clear(0xFF000000);
+
+	Mesh cubeMesh;
+	Primitives::createCube(cubeMesh, 20.0f);
+
+	drawWireMesh(cubeMesh, 0xff0000ff);
 }
 
-void Renderer::drawPixel(int x, int y, int color) {
-	if (x < 0 ||
-		y < 0 ||
-		x >= m_width ||
-		y >= m_height)
+ScreenPosition Renderer::spaceToScreen(Vector3 position) {
+	float divisor = (position.z / m_cameraDistance + 1.0f);
+	if (divisor < 0.001f) divisor = 0.001f;
+	float ooz = 1.0f / divisor; // one over z, the projection scale factor
+
+	ScreenPosition screenPosition;
+
+	float scale = 10.0f;
+
+	screenPosition.x = static_cast<int>((position.x * ooz * scale) + (m_width / 2.0f));
+	screenPosition.y = static_cast<int>((position.y * ooz * scale) + (m_height / 2.0f));
+
+	return screenPosition;
+}
+
+void Renderer::drawPixel(ScreenPosition pixel, int color) {
+	if (pixel.x < 0 ||
+		pixel.y < 0 ||
+		pixel.x >= m_width ||
+		pixel.y >= m_height)
 	{
 		return;
 	}
 
- 	m_frameBuffer[y * m_width + x] = color;
+ 	m_frameBuffer[pixel.y * m_width + pixel.x] = color;
 }
 
 // Bresenham's line algorithm 
-void Renderer::drawLine(int x1, int y1, int x2, int y2, int color) {
-	int dx = std::abs(x2 - x1);
-	int dy = std::abs(y2 - y1);
-	int step_x = (x1 < x2) ? 1 : -1;
-	int step_y = (y1 < y2) ? 1 : -1;
+void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, int color) {
+	// check if coordinates are massive to prevent overflows
+	if (std::abs(pixel1.x) > 10000 || std::abs(pixel1.y) > 10000 ||
+		std::abs(pixel2.x) > 10000 || std::abs(pixel2.y) > 10000) {
+		return;
+	}
+
+	// prevent clipping
+	if ((pixel1.x < 0 && pixel2.x < 0) || (pixel1.x >= m_width && pixel2.x >= m_width) ||
+		(pixel1.y < 0 && pixel2.y < 0) || (pixel1.y >= m_height && pixel2.y >= m_height)) {
+		return;
+	}
+
+	int dx = std::abs(pixel2.x - pixel1.x);
+	int dy = std::abs(pixel2.y - pixel1.y);
+	int step_x = (pixel1.x < pixel2.x) ? 1 : -1;
+	int step_y = (pixel1.y < pixel2.y) ? 1 : -1;
 
 	int err = dx - dy;
 
 	while (true) {
-		drawPixel(x1, y1, color);
+		drawPixel(pixel1, color);
 
-		if (x1 == x2 && y1 == y2) break;
+		if (pixel1.x == pixel2.x && pixel1.y == pixel2.y) break;
 
 		int e2 = 2 * err;
 		if (e2 > -dy) {
 			err -= dy;
-			x1 += step_x;
+			pixel1.x += step_x;
 		}
 		if (e2 < dx) {
 			err += dx;
-			y1 += step_y;
+			pixel1.y += step_y;
+		}
+	}
+}
+
+void Renderer::drawWireMesh(Mesh mesh, int color) {
+	std::unordered_set<std::pair<int, int>, EdgeHash> drawnEdges;
+
+	static float angle = 0.0f;
+	angle += 0.01f;
+
+	std::vector<ScreenPosition> screenPositions;
+	screenPositions.reserve(mesh.vertices.size());
+	for (const auto& vertex : mesh.vertices) {
+		Vector3 rotated = Math::rotateY(vertex.position, angle);
+		rotated = Math::rotateX(rotated, angle / 2);
+		screenPositions.push_back(spaceToScreen(rotated));
+	}
+
+	for (const auto& triangle : mesh.triangles) {
+		int indices[3] = { triangle.vertex1, triangle.vertex2, triangle.vertex3 };
+
+		for (int j = 0; j < 3; j++) {
+			int index1 = indices[j];
+			int index2 = indices[(j + 1) % 3];
+
+			std::pair<int, int> edge = std::minmax(index1, index2);
+
+			if (drawnEdges.insert(edge).second) {
+				drawLine(screenPositions[index1], screenPositions[index2], color);
+			}
 		}
 	}
 }

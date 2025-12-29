@@ -1,6 +1,6 @@
 #include "Primitives.h"
 
-Mesh Primitives::CreateCube(Mesh& outMesh, float size) {
+void Primitives::createCube(Mesh& outMesh, float size) {
 	float half_size = size / 2;
 
 	std::vector<Vertex> vertices;
