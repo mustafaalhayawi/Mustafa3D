@@ -41,22 +41,31 @@ void Renderer::render() {
 	clear(0xFF000000);
 
 	Mesh cubeMesh;
-	Primitives::createCube(cubeMesh, 20.0f);
+	Primitives::createCube(cubeMesh, 10.0f);
 
 	drawWireMesh(cubeMesh, 0xff0000ff);
 }
 
 ScreenPosition Renderer::spaceToScreen(Vector3 position) {
-	float divisor = (position.z / m_cameraDistance + 1.0f);
-	if (divisor < 0.001f) divisor = 0.001f;
-	float ooz = 1.0f / divisor; // one over z, the projection scale factor
-
 	ScreenPosition screenPosition;
 
-	float scale = 10.0f;
+	float z_depth = position.z + m_cameraDistance;
 
-	screenPosition.x = static_cast<int>((position.x * ooz * scale) + (m_width / 2.0f));
-	screenPosition.y = static_cast<int>((position.y * ooz * scale) + (m_height / 2.0f));
+	if (z_depth < 1.0f) {
+		z_depth = 1.0f;
+	}
+
+	float FOV = 90.0f; // in degrees
+	float fovRad = (FOV * 0.5f) * (Math::pi / 180.0f); // convert FOV to radians
+	float projectionScale = 1.0f / tan(fovRad / 2);
+
+	float aspectRatio = (float)m_height / (float)m_width;
+
+	float normalizedX = (position.x / z_depth) * projectionScale * aspectRatio;
+	float normalizedY = (position.y / z_depth) * projectionScale;
+
+	screenPosition.x = static_cast<int>((normalizedX + 1.0f) * 0.5f * m_width);
+	screenPosition.y = static_cast<int>((1.0f - normalizedY) * 0.5f * m_height);
 
 	return screenPosition;
 }

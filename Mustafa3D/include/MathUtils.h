@@ -3,6 +3,8 @@
 #include <cmath>
 
 namespace Math {
+	float pi = 3.1415926535;
+
 	inline Vector3 rotateX(Vector3 vector, float angle) {
 		Vector3 result = vector;
 
