@@ -34,7 +34,7 @@ void Renderer::drawPixel(int x, int y, int color) {
 		return;
 	}
 
-	m_frameBuffer[y * m_width + x] = color;
+ 	m_frameBuffer[y * m_width + x] = color;
 }
 
 // Bresenham's line algorithm 
