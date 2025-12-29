@@ -138,6 +138,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Geometry.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Primitives.cpp" />
     <ClCompile Include="src\Renderer.cpp" />

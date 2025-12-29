@@ -15,8 +15,6 @@ void runLoop(Window& window, Renderer& renderer) {
 		Uint64 frameStart = SDL_GetTicks();
 
 		window.handleEvents();
-
-		renderer.clear(0xff);
 		renderer.render();
 		window.presentFrame(renderer.getBuffer());
 

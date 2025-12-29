@@ -5,6 +5,8 @@ struct ScreenPosition {
 	int x, y;
 };
 
+int edgeFunction(ScreenPosition point1, ScreenPosition point2, ScreenPosition point3);
+
 struct Vector3 {
 	float x, y, z;
 

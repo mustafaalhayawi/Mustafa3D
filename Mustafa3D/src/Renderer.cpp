@@ -37,13 +37,13 @@ void Renderer::clear(int color) {
 }
 
 void Renderer::render() {
-
-	clear(0xFF000000);
+	clear(0xff000000);
 
 	Mesh cubeMesh;
 	Primitives::createCube(cubeMesh, 10.0f);
 
-	drawWireMesh(cubeMesh, 0xff0000ff);
+	drawMesh(cubeMesh, 0xff0000ff);
+	drawWireMesh(cubeMesh, 0xffffffff);
 }
 
 ScreenPosition Renderer::spaceToScreen(Vector3 position) {
@@ -120,6 +120,28 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, int color)
 	}
 }
 
+void Renderer::drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C, int color) {
+	ScreenPosition P = ScreenPosition(0, 0);
+
+	// get bounding box of the triangle on the screen
+	int minX = std::min({ A.x, B.x, C.x });
+	int minY = std::min({ A.y, B.y, C.y });
+	int maxX = std::max({ A.x, B.x, C.x });
+	int maxY = std::max({ A.y, B.y, C.y });
+
+	for (P.y = minY; P.y < maxY; P.y++) {
+		for (P.x = minX; P.x < maxX; P.x++) {
+			int APB = edgeFunction(A, P, B);
+			int BPC = edgeFunction(B, P, C);
+			int CPA = edgeFunction(C, P, A);
+
+			if (APB >= 0 && BPC >= 0 && CPA >= 0) {
+				drawPixel(P, color);
+			}
+		}
+	}
+}
+
 void Renderer::drawWireMesh(Mesh mesh, int color) {
 	std::unordered_set<std::pair<int, int>, EdgeHash> drawnEdges;
 
@@ -147,5 +169,28 @@ void Renderer::drawWireMesh(Mesh mesh, int color) {
 				drawLine(screenPositions[index1], screenPositions[index2], color);
 			}
 		}
+	}
+}
+
+void Renderer::drawMesh(Mesh& mesh, int color) {
+	static float angle = 0.0f;
+	angle += 0.01f;
+
+	std::vector<ScreenPosition> screenPositions;
+	screenPositions.reserve(mesh.vertices.size());
+
+	for (const auto& vertex : mesh.vertices) {
+		Vector3 rotated = Math::rotateY(vertex.position, angle);
+		rotated = Math::rotateX(rotated, angle / 2);
+		screenPositions.push_back(spaceToScreen(rotated));
+	}
+
+	for (const auto& triangle : mesh.triangles) {
+		// convert world position vectors of vertices of triangle into screen position vectors
+		ScreenPosition A = screenPositions[triangle.vertex1];
+		ScreenPosition B = screenPositions[triangle.vertex2];
+		ScreenPosition C = screenPositions[triangle.vertex3];
+
+		drawTriangle(A, B, C, color);
 	}
 }
