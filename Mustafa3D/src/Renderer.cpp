@@ -17,10 +17,11 @@ namespace {
 	};
 }
 
-Renderer::Renderer(int width, int height, float camera_distance)
+Renderer::Renderer(int width, int height, float camera_distance, Vector3 light_source)
 	: m_width(width),
 	  m_height(height),
-	  m_cameraDistance(camera_distance)
+	  m_cameraDistance(camera_distance),
+	  m_lightSource(light_source / Math::getMagnitude(light_source)) // normalise the light source vector
 {
 	m_frameBuffer = new int[width * height];
 }
@@ -45,7 +46,11 @@ void Renderer::render(float deltaTime) {
 	static Entity myCube(&cubeMesh);
 	myCube.update(deltaTime);
 	drawMesh(myCube, 0xff0000ff);
-	drawWireMesh(myCube, 0xffffffff);
+
+	static Entity anotherCube(&cubeMesh);
+	anotherCube.position = Vector3(10, 10, 10);
+	anotherCube.update(deltaTime);
+	drawMesh(anotherCube, 0xff00ff00);
 }
 
 ScreenPosition Renderer::spaceToScreen(Vector3 position) {
@@ -72,7 +77,7 @@ ScreenPosition Renderer::spaceToScreen(Vector3 position) {
 	return screenPosition;
 }
 
-void Renderer::drawPixel(ScreenPosition pixel, int color) {
+void Renderer::drawPixel(ScreenPosition pixel, uint32_t color) {
 	if (pixel.x < 0 ||
 		pixel.y < 0 ||
 		pixel.x >= m_width ||
@@ -84,8 +89,20 @@ void Renderer::drawPixel(ScreenPosition pixel, int color) {
  	m_frameBuffer[pixel.y * m_width + pixel.x] = color;
 }
 
+uint32_t Renderer::applyIntensity(uint32_t color, float intensity) {
+	// keep alpha separate
+	uint32_t a = color & 0xFF000000;
+
+	// mask and multiply rgb
+	uint32_t r = (uint32_t)(((color >> 16) & 0xFF) * intensity);
+	uint32_t g = (uint32_t)(((color >> 8) & 0xFF) * intensity);
+	uint32_t b = (uint32_t)((color & 0xFF) * intensity);
+
+	return a | (r << 16) | (g << 8) | b;
+}
+
 // Bresenham's line algorithm 
-void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, int color) {
+void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t color) {
 	// check if coordinates are massive to prevent overflows
 	if (std::abs(pixel1.x) > 10000 || std::abs(pixel1.y) > 10000 ||
 		std::abs(pixel2.x) > 10000 || std::abs(pixel2.y) > 10000) {
@@ -123,7 +140,7 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, int color)
 }
 
 // todo: update algorithm to be more efficient by using line scanning
-void Renderer::drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C, int color) {
+void Renderer::drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C, uint32_t color) {
 	ScreenPosition P = ScreenPosition(0, 0);
 
 	// get bounding box of the triangle on the screen
@@ -145,7 +162,7 @@ void Renderer::drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C
 	}
 }
 
-void Renderer::drawWireMesh(const Entity& entity, int color) {
+void Renderer::drawWireMesh(const Entity& entity, uint32_t color) {
 	std::unordered_set<std::pair<int, int>, EdgeHash> drawnEdges;
 
 	std::vector<ScreenPosition> screenPositions;
@@ -170,7 +187,7 @@ void Renderer::drawWireMesh(const Entity& entity, int color) {
 	}
 }
 
-void Renderer::drawMesh(const Entity& entity, int color) {
+void Renderer::drawMesh(const Entity& entity, uint32_t color) {
 	std::vector<ScreenPosition> screenPositions;
 	screenPositions.reserve(entity.worldMesh.vertices.size());
 
@@ -178,12 +195,20 @@ void Renderer::drawMesh(const Entity& entity, int color) {
 		screenPositions.push_back(spaceToScreen(vertex.position));
 	}
 
-	for (const auto& triangle : entity.mesh->triangles) {
+	for (size_t i = 0; i < entity.mesh->triangles.size(); i++) {
+		const auto& triangle = entity.mesh->triangles[i];
+		const Vector3& rotatedNormal = entity.worldMesh.normals[i];
+		
 		// convert world position vectors of vertices of triangle into screen position vectors
 		ScreenPosition A = screenPositions[triangle.vertex1];
 		ScreenPosition B = screenPositions[triangle.vertex2];
 		ScreenPosition C = screenPositions[triangle.vertex3];
 
-		drawTriangle(A, B, C, color);
+		float dot = Math::dotProduct(rotatedNormal, m_lightSource); // rotatedNormal and m_lightSource are already unit vectors (normalised)
+
+		float ambient = 0.2f;
+		float lightIntensity = std::min(1.0f, std::max(0.0f, dot) + ambient);
+
+		drawTriangle(A, B, C, applyIntensity(color, lightIntensity));
 	}
 }

@@ -20,12 +20,12 @@ void Primitives::createCube(Mesh& outMesh, float size) {
 	}
 
 	std::vector<int> indices = {
-		0, 2, 1,	1, 2, 3,
-		1, 3, 5,	3, 7, 5,
-		4, 5, 7,	4, 7, 6,
-		0, 4, 6,	0, 6, 2,
-		0, 1, 5,	0, 5, 4,
-		2, 7, 3,	2, 6, 7
+		0, 1, 2,	2, 1, 3,
+		5, 4, 7,	7, 4, 6,
+		1, 5, 3,	3, 5, 7,
+		4, 0, 6,	6, 0, 2,
+		2, 3, 6,	3, 7, 6,
+		4, 5, 0,	0, 5, 1
 	};
 
 	std::vector<Triangle> triangles;
@@ -41,8 +41,8 @@ void Primitives::createCube(Mesh& outMesh, float size) {
 		newTriangle.vertex2 = index2;
 		newTriangle.vertex3 = index3;
 
-		Vector3 vectorA = vertices[index3].position - vertices[index1].position;
-		Vector3 vectorB = vertices[index2].position - vertices[index1].position;
+		Vector3 vectorA = vertices[index2].position - vertices[index1].position;
+		Vector3 vectorB = vertices[index3].position - vertices[index1].position;
 
 		newTriangle.normal = Math::normalise(Math::crossProduct(vectorA, vectorB));
 
