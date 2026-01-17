@@ -16,12 +16,13 @@ private:
 	ScreenPosition spaceToScreen(Vector3 position);
 	void drawPixel(ScreenPosition pixel, uint32_t color);
 	void drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t color);
-	void drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C, uint32_t color);
+	void drawTriangle(Vector3 vectorA, Vector3 vectorB, Vector3 vectorC, uint32_t color);
 	void drawWireMesh(const Entity& entity, uint32_t color);
 	void drawMesh(const Entity& entity, uint32_t color);
 	uint32_t applyIntensity(uint32_t color, float intensity);
 	
 	int* m_frameBuffer;
+	std::vector<float> m_zBuffer;
 	int m_width, m_height;
 	float m_cameraDistance;
 	Vector3 m_lightSource;

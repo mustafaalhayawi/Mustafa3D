@@ -21,7 +21,8 @@ Renderer::Renderer(int width, int height, float camera_distance, Vector3 light_s
 	: m_width(width),
 	  m_height(height),
 	  m_cameraDistance(camera_distance),
-	  m_lightSource(light_source / Math::getMagnitude(light_source)) // normalise the light source vector
+	  m_lightSource(light_source / Math::getMagnitude(light_source)), // normalise the light source vector
+	  m_zBuffer(width * height, 0.0f)
 {
 	m_frameBuffer = new int[width * height];
 }
@@ -34,6 +35,7 @@ Renderer::~Renderer()
 void Renderer::clear(int color) {
 	for (int i = 0; i < m_width * m_height; i++) {
 		m_frameBuffer[i] = color;
+		m_zBuffer[i] = 0.0f;
 	}
 }
 
@@ -43,14 +45,15 @@ void Renderer::render(float deltaTime) {
 	static Mesh cubeMesh;
 	if (cubeMesh.vertices.empty()) Primitives::createCube(cubeMesh, 10.0f);
 
-	static Entity myCube(&cubeMesh);
-	myCube.update(deltaTime);
-	drawMesh(myCube, 0xff0000ff);
+	static Entity redCube(&cubeMesh);
+	redCube.position = Vector3(2, -1, 0);
+	redCube.update(deltaTime);
+	drawMesh(redCube, 0xff0000ff);
 
-	static Entity anotherCube(&cubeMesh);
-	anotherCube.position = Vector3(10, 10, 10);
-	anotherCube.update(deltaTime);
-	drawMesh(anotherCube, 0xff00ff00);
+	static Entity greenCube(&cubeMesh);
+	greenCube.position = Vector3(-7, 9, 20);
+	greenCube.update(deltaTime);
+	drawMesh(greenCube, 0xff00ff00);
 }
 
 ScreenPosition Renderer::spaceToScreen(Vector3 position) {
@@ -140,7 +143,10 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t c
 }
 
 // todo: update algorithm to be more efficient by using line scanning
-void Renderer::drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C, uint32_t color) {
+void Renderer::drawTriangle(Vector3 vectorA, Vector3 vectorB, Vector3 vectorC, uint32_t color) {
+	ScreenPosition A = spaceToScreen(vectorA);
+	ScreenPosition B = spaceToScreen(vectorB);
+	ScreenPosition C = spaceToScreen(vectorC);
 	ScreenPosition P = ScreenPosition(0, 0);
 
 	// get bounding box of the triangle on the screen
@@ -149,14 +155,36 @@ void Renderer::drawTriangle(ScreenPosition A, ScreenPosition B, ScreenPosition C
 	int maxX = std::max({ A.x, B.x, C.x });
 	int maxY = std::max({ A.y, B.y, C.y });
 
-	for (P.y = minY; P.y < maxY; P.y++) {
-		for (P.x = minX; P.x < maxX; P.x++) {
-			int APB = edgeFunction(A, P, B);
-			int BPC = edgeFunction(B, P, C);
-			int CPA = edgeFunction(C, P, A);
+	// clamp to the screen boundaries
+	minX = std::max(0, minX);
+	minY = std::max(0, minY);
+	maxX = std::min(m_width - 1, maxX);
+	maxY = std::min(m_height - 1, maxY);
 
-			if (APB >= 0 && BPC >= 0 && CPA >= 0) {
-				drawPixel(P, color);
+	float area = (float)edgeFunction(A, B, C);
+
+	for (P.y = minY; P.y <= maxY; P.y++) {
+		for (P.x = minX; P.x <= maxX; P.x++) {
+			float ABP = edgeFunction(A, B, P) / area;
+			float BCP = edgeFunction(B, C, P) / area;
+			float CAP = edgeFunction(C, A, P) / area;
+
+			// backface culling
+			if (ABP >= 0 && BCP >= 0 && CAP >= 0) {
+				float zWorld = (BCP * vectorA.z) + (CAP * vectorB.z) + (ABP * vectorC.z) + m_cameraDistance;
+				
+				// don't render if too close to or behind the camera
+				if (zWorld < 0.1f) continue;
+
+				float pixelDepth = 1.0f / zWorld;
+
+				// z-buffering
+				int idx = P.x + P.y * m_width; // index of the current pixel in the z_buffer vector
+				if (pixelDepth > m_zBuffer[idx]) {
+					m_zBuffer[idx] = pixelDepth;
+
+					drawPixel(P, color);
+				}
 			}
 		}
 	}
@@ -188,27 +216,13 @@ void Renderer::drawWireMesh(const Entity& entity, uint32_t color) {
 }
 
 void Renderer::drawMesh(const Entity& entity, uint32_t color) {
-	std::vector<ScreenPosition> screenPositions;
-	screenPositions.reserve(entity.worldMesh.vertices.size());
-
-	for (const auto& vertex : entity.worldMesh.vertices) {
-		screenPositions.push_back(spaceToScreen(vertex.position));
-	}
-
 	for (size_t i = 0; i < entity.mesh->triangles.size(); i++) {
-		const auto& triangle = entity.mesh->triangles[i];
-		const Vector3& rotatedNormal = entity.worldMesh.normals[i];
-		
-		// convert world position vectors of vertices of triangle into screen position vectors
-		ScreenPosition A = screenPositions[triangle.vertex1];
-		ScreenPosition B = screenPositions[triangle.vertex2];
-		ScreenPosition C = screenPositions[triangle.vertex3];
-
-		float dot = Math::dotProduct(rotatedNormal, m_lightSource); // rotatedNormal and m_lightSource are already unit vectors (normalised)
-
+		float dot = Math::dotProduct(entity.worldMesh.normals[i], m_lightSource); // the normal and m_lightSource are already unit vectors (normalised)
 		float ambient = 0.2f;
 		float lightIntensity = std::min(1.0f, std::max(0.0f, dot) + ambient);
 
-		drawTriangle(A, B, C, applyIntensity(color, lightIntensity));
+		const auto& triangle = entity.mesh->triangles[i];
+
+		drawTriangle(entity.worldMesh.vertices[triangle.vertex1].position, entity.worldMesh.vertices[triangle.vertex2].position, entity.worldMesh.vertices[triangle.vertex3].position, applyIntensity(color, lightIntensity));
 	}
 }
