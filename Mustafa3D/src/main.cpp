@@ -6,6 +6,7 @@
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 const float CAMERA_DISTANCE = 25.0f;
+const float FOV = 90.0f;
 const int TARGET_FPS = 60;
 const int FRAME_DELAY = 1000 / TARGET_FPS;
 const Vector3 LIGHT_SOURCE = Vector3(1, 0, 1);
@@ -38,7 +39,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	Window window("Mustafa3D", WINDOW_WIDTH, WINDOW_HEIGHT);
-	Renderer renderer(WINDOW_WIDTH, WINDOW_HEIGHT, CAMERA_DISTANCE, LIGHT_SOURCE);
+	Renderer renderer(WINDOW_WIDTH, WINDOW_HEIGHT, CAMERA_DISTANCE, LIGHT_SOURCE, FOV);
 
 	runLoop(window, renderer);
 

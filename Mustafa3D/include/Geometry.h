@@ -3,6 +3,7 @@
 
 struct ScreenPosition {
 	int x, y;
+	float z;
 };
 
 int edgeFunction(ScreenPosition point1, ScreenPosition point2, ScreenPosition point3);

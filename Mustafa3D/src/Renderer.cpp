@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <utility>
+#include <type_traits>
 
 namespace {
 	struct EdgeHash {
@@ -17,12 +18,14 @@ namespace {
 	};
 }
 
-Renderer::Renderer(int width, int height, float camera_distance, Vector3 light_source)
+Renderer::Renderer(int width, int height, float camera_distance, Vector3 light_source, float FOV)
 	: m_width(width),
 	  m_height(height),
 	  m_cameraDistance(camera_distance),
 	  m_lightSource(light_source / Math::getMagnitude(light_source)), // normalise the light source vector
-	  m_zBuffer(width * height, 0.0f)
+	  m_zBuffer(width * height, 0.0f),
+	  m_projectionScale(1.0f / tan(FOV * (Math::pi / 180.0f) / 2)),
+	  m_aspectRatio((float)m_height / (float)m_width)
 {
 	m_frameBuffer = new int[width * height];
 }
@@ -51,13 +54,14 @@ void Renderer::render(float deltaTime) {
 	drawMesh(redCube, 0xff0000ff);
 
 	static Entity greenCube(&cubeMesh);
-	greenCube.position = Vector3(-7, 9, 20);
+	greenCube.position = Vector3(-5, 7, -10);
 	greenCube.update(deltaTime);
 	drawMesh(greenCube, 0xff00ff00);
 }
 
-ScreenPosition Renderer::spaceToScreen(Vector3 position) {
-	ScreenPosition screenPosition;
+template<typename T>
+T Renderer::spaceToScreen(Vector3 position) {
+	T screenPosition;
 
 	float z_depth = position.z + m_cameraDistance;
 
@@ -65,17 +69,15 @@ ScreenPosition Renderer::spaceToScreen(Vector3 position) {
 		z_depth = 1.0f;
 	}
 
-	float FOV = 90.0f; // in degrees
-	float fovRad = (FOV * 0.5f) * (Math::pi / 180.0f); // convert FOV to radians
-	float projectionScale = 1.0f / tan(fovRad / 2);
+	float normalizedX = (position.x / z_depth) * m_projectionScale * m_aspectRatio;
+	float normalizedY = (position.y / z_depth) * m_projectionScale;
 
-	float aspectRatio = (float)m_height / (float)m_width;
+	float finalX = (normalizedX + 1.0f) * 0.5f * m_width;
+	float finalY = (1.0f - normalizedY) * 0.5f * m_height;
 
-	float normalizedX = (position.x / z_depth) * projectionScale * aspectRatio;
-	float normalizedY = (position.y / z_depth) * projectionScale;
-
-	screenPosition.x = static_cast<int>((normalizedX + 1.0f) * 0.5f * m_width);
-	screenPosition.y = static_cast<int>((1.0f - normalizedY) * 0.5f * m_height);
+	screenPosition.x = static_cast<decltype(screenPosition.x)>(finalX);
+	screenPosition.y = static_cast<decltype(screenPosition.y)> (finalY);
+	screenPosition.z = z_depth;
 
 	return screenPosition;
 }
@@ -142,50 +144,134 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t c
 	}
 }
 
-// todo: update algorithm to be more efficient by using line scanning
-void Renderer::drawTriangle(Vector3 vectorA, Vector3 vectorB, Vector3 vectorC, uint32_t color) {
-	ScreenPosition A = spaceToScreen(vectorA);
-	ScreenPosition B = spaceToScreen(vectorB);
-	ScreenPosition C = spaceToScreen(vectorC);
-	ScreenPosition P = ScreenPosition(0, 0);
+// todo: use a lambda function to make code non-repetitive
+void Renderer::drawTriangle(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, uint32_t color) {
+	Vector3 v0 = spaceToScreen<Vector3>(vertexA);
+	Vector3 v1 = spaceToScreen<Vector3>(vertexB);
+	Vector3 v2 = spaceToScreen<Vector3>(vertexC);
 
-	// get bounding box of the triangle on the screen
-	int minX = std::min({ A.x, B.x, C.x });
-	int minY = std::min({ A.y, B.y, C.y });
-	int maxX = std::max({ A.x, B.x, C.x });
-	int maxY = std::max({ A.y, B.y, C.y });
+	v0.z = 1.0f / v0.z;
+	v1.z = 1.0f / v1.z;
+	v2.z = 1.0f / v2.z;
 
-	// clamp to the screen boundaries
-	minX = std::max(0, minX);
-	minY = std::max(0, minY);
-	maxX = std::min(m_width - 1, maxX);
-	maxY = std::min(m_height - 1, maxY);
+	// sort the vertices in descending order of y values
+	if (v0.y > v1.y) std::swap(v0, v1);
+	if (v0.y > v2.y) std::swap(v0, v2);
+	if (v1.y > v2.y) std::swap(v1, v2);
 
-	float area = (float)edgeFunction(A, B, C);
+	float dy_total = (v2.y - v0.y); // total height of the triangle
 
-	for (P.y = minY; P.y <= maxY; P.y++) {
-		for (P.x = minX; P.x <= maxX; P.x++) {
-			float ABP = edgeFunction(A, B, P) / area;
-			float BCP = edgeFunction(B, C, P) / area;
-			float CAP = edgeFunction(C, A, P) / area;
+	if (std::abs(dy_total) < 0.0001f) return;
 
-			// backface culling
-			if (ABP >= 0 && BCP >= 0 && CAP >= 0) {
-				float zWorld = (BCP * vectorA.z) + (CAP * vectorB.z) + (ABP * vectorC.z) + m_cameraDistance;
-				
-				// don't render if too close to or behind the camera
-				if (zWorld < 0.1f) continue;
+	float long_dxdy = (v2.x - v0.x) / dy_total;
+	
+	float dy_middle = (v1.y - v0.y);
 
-				float pixelDepth = 1.0f / zWorld;
+	Vector3 vMidL = v1;
+	Vector3 vMidR;
+	vMidR.x = v0.x + (dy_middle * long_dxdy);
+	vMidR.y = v1.y;
+	vMidR.z = v0.z + (dy_middle * ((v2.z - v0.z) / dy_total));
 
+	if (vMidL.x > vMidR.x) std::swap(vMidL, vMidR);
+
+	float top_height = (float)(vMidL.y - v0.y);
+
+	if (top_height > 0.5f)
+	{
+		float dxdy_left = (vMidL.x - v0.x) / top_height;
+		float dxdy_right = (vMidR.x - v0.x) / top_height;
+
+		float dinvZdy_left = (vMidL.z - v0.z) / top_height;
+		float dinvZdy_right = (vMidR.z - v0.z) / top_height;
+
+		int yStart = std::max(0, (int)std::ceil(v0.y));
+		int yEnd = std::min(m_height, (int)std::ceil(vMidL.y));
+
+		float yPrestep = (float)(yStart - v0.y);
+
+		float x_left_cur = v0.x + (dxdy_left * yPrestep);
+		float x_right_cur = v0.x + (dxdy_right * yPrestep);
+		float invZ_left_cur = v0.z + (dinvZdy_left * yPrestep);
+		float invZ_right_cur = v0.z + (dinvZdy_right * yPrestep);
+
+		for (int y = yStart; y < yEnd; y++) {
+			int startX = std::max(0, std::min(m_width, (int)std::ceil(x_left_cur)));
+			int endX = std::max(0, std::min(m_width, (int)std::ceil(x_right_cur)));
+
+			float x_range = (float)(x_right_cur - x_left_cur);
+
+			float invZ_step = (x_range > 0.0f) ? ((invZ_right_cur - invZ_left_cur) / x_range) : 0.0f;
+
+			float xPrestep = (float)startX - x_left_cur;
+			float currentInvZ = invZ_left_cur + (invZ_step * xPrestep);
+
+			int idx = y * m_width;
+			for (int x = startX; x < endX; x++) {
 				// z-buffering
-				int idx = P.x + P.y * m_width; // index of the current pixel in the z_buffer vector
-				if (pixelDepth > m_zBuffer[idx]) {
-					m_zBuffer[idx] = pixelDepth;
-
-					drawPixel(P, color);
+				 // index of the current pixel in the z_buffer vector
+				if (currentInvZ > m_zBuffer[x+idx]) {
+					m_zBuffer[x+idx] = currentInvZ;
+					m_frameBuffer[x+idx] = color;
 				}
+
+				currentInvZ += invZ_step;
 			}
+
+			x_left_cur += dxdy_left;
+			x_right_cur += dxdy_right;
+			invZ_left_cur += dinvZdy_left;
+			invZ_right_cur += dinvZdy_right;
+		}
+	}
+
+	float bot_height = (float)(v2.y - vMidL.y);
+
+	if (bot_height > 0.5f)
+	{
+		float dxdy_left = (v2.x - vMidL.x) / bot_height;
+		float dxdy_right = (v2.x - vMidR.x) / bot_height;
+
+		float dinvZdy_left = (v2.z - vMidL.z) / bot_height;
+		float dinvZdy_right = (v2.z - vMidR.z) / bot_height;
+
+		int yStart = std::max(0, (int)std::ceil(vMidL.y));
+		int yEnd = std::min(m_height, (int)std::ceil(v2.y));
+
+		float yPrestep = (float)(yStart - vMidL.y);
+
+		float x_left_cur = vMidL.x + (dxdy_left * yPrestep);
+		float x_right_cur = vMidR.x + (dxdy_right * yPrestep);
+		float invZ_left_cur = vMidL.z + (dinvZdy_left * yPrestep);
+		float invZ_right_cur = vMidR.z + (dinvZdy_right * yPrestep);
+
+		for (int y = yStart; y < yEnd; y++) {
+			int startX = std::max(0, std::min(m_width, (int)std::ceil(x_left_cur)));
+			int endX = std::max(0, std::min(m_width, (int)std::ceil(x_right_cur)));
+
+			float x_range = (float)(x_right_cur - x_left_cur);
+
+			float invZ_step = (x_range > 0.0f) ? ((invZ_right_cur - invZ_left_cur) / x_range) : 0.0f;
+
+			float xPrestep = (float)startX - x_left_cur;
+			float currentInvZ = invZ_left_cur + (invZ_step * xPrestep);
+
+			int idx = y * m_width;
+			for (int x = startX; x < endX; x++) {
+				// z-buffering
+				 // index of the current pixel in the z_buffer vector
+				if (currentInvZ > m_zBuffer[x+idx]) {
+					m_zBuffer[x+idx] = currentInvZ;
+					m_frameBuffer[x+idx] = color;
+				}
+
+				currentInvZ += invZ_step;
+			}
+
+			x_left_cur += dxdy_left;
+			x_right_cur += dxdy_right;
+			invZ_left_cur += dinvZdy_left;
+			invZ_right_cur += dinvZdy_right;
 		}
 	}
 }

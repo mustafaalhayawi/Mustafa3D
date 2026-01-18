@@ -5,7 +5,7 @@
 
 class Renderer {
 public:
-	Renderer(int width, int height, float camera_distance, Vector3 light_source);
+	Renderer(int width, int height, float camera_distance, Vector3 light_source, float FOV);
 	~Renderer();
 
 	void clear(int color);
@@ -13,10 +13,11 @@ public:
 	int* getBuffer() { return m_frameBuffer; }
 
 private:
-	ScreenPosition spaceToScreen(Vector3 position);
+	template<typename T = ScreenPosition>
+	T spaceToScreen(Vector3 position);
 	void drawPixel(ScreenPosition pixel, uint32_t color);
 	void drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t color);
-	void drawTriangle(Vector3 vectorA, Vector3 vectorB, Vector3 vectorC, uint32_t color);
+	void drawTriangle(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, uint32_t color);
 	void drawWireMesh(const Entity& entity, uint32_t color);
 	void drawMesh(const Entity& entity, uint32_t color);
 	uint32_t applyIntensity(uint32_t color, float intensity);
@@ -26,4 +27,6 @@ private:
 	int m_width, m_height;
 	float m_cameraDistance;
 	Vector3 m_lightSource;
+	float m_projectionScale;
+	float m_aspectRatio;
 };
