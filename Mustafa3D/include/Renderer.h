@@ -2,6 +2,7 @@
 #include "Geometry.h"
 #include "Entity.h"
 #include <SDL3/SDL.h>
+#include <cmath>
 
 class Renderer {
 public:
@@ -21,6 +22,7 @@ private:
 	void drawWireMesh(const Entity& entity, uint32_t color);
 	void drawMesh(const Entity& entity, uint32_t color);
 	uint32_t applyIntensity(uint32_t color, float intensity);
+	uint32_t combineColours(uint32_t color1, uint32_t color2);
 	
 	int* m_frameBuffer;
 	std::vector<float> m_zBuffer;

@@ -60,7 +60,7 @@ void Renderer::render(float deltaTime) {
 	//drawMesh(greenCube, 0xff00ff00);
 
 	static Mesh mesh;
-	if (mesh.vertices.empty()) loadMesh(mesh, "assets/flatmonkey.obj");
+	if (mesh.vertices.empty()) loadMesh(mesh, "assets/monkey.obj");
 
 	static Entity myEntity(&mesh);
 	myEntity.position = Vector3(0, 0, 0);
@@ -113,6 +113,19 @@ uint32_t Renderer::applyIntensity(uint32_t color, float intensity) {
 	uint32_t b = (uint32_t)((color & 0xFF) * intensity);
 
 	return a | (r << 16) | (g << 8) | b;
+}
+
+uint32_t Renderer::combineColours(uint32_t color1, uint32_t color2) {
+	int r = ((color1 >> 16) & 0xFF) + ((color2 >> 16) & 0xFF);
+	int g = ((color1 >> 8) & 0xFF) + ((color2 >> 8) & 0xFF);
+	int b = (color1 & 0xFF) + (color2 & 0xFF);
+
+	// Clamp to 255
+	r = std::min(255, r);
+	g = std::min(255, g);
+	b = std::min(255, b);
+
+	return (0xFF000000) | (r << 16) | (g << 8) | b;
 }
 
 // Bresenham's line algorithm 
@@ -328,20 +341,30 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, uint32_t color) {
 
 				float interpolatedInvZ = (A_invZ * fw0) + (B_invZ * fw1) + (C_invZ * fw2);
 
-				Vector3 perspectiveNormal = (A.normal * A_invZ * fw0) + (B.normal * B_invZ * fw1) + (C.normal * C_invZ * fw2);
-				perspectiveNormal = perspectiveNormal / interpolatedInvZ;
-				Vector3 interpolatedNormal = Math::normalise(perspectiveNormal);
-
 				if (interpolatedInvZ > m_zBuffer[idx + P.x]) {
 					m_zBuffer[idx + P.x] = interpolatedInvZ;
 
-					float lightIntensity = Math::dotProduct(interpolatedNormal, m_lightSource);
+					Vector3 perspectiveNormal = (A.normal * A_invZ * fw0) + (B.normal * B_invZ * fw1) + (C.normal * C_invZ * fw2);
+					perspectiveNormal = perspectiveNormal / interpolatedInvZ;
+					Vector3 interpolatedNormal = Math::normalise(perspectiveNormal);
+
+					Vector3 perspectivePos = (A.position * A_invZ * fw0) + (B.position * B_invZ * fw1) + (C.position * C_invZ * fw2);
+					Vector3 interpolatedWorldPos = perspectivePos / interpolatedInvZ;
+					Vector3 viewVector = Math::normalise(Vector3(0, 0, -m_cameraDistance) - interpolatedWorldPos);
+
+					Vector3 reflectionVector = interpolatedNormal * 2 * Math::dotProduct(interpolatedNormal, m_lightSource) - m_lightSource;
+
 					float ambient = 0.2f;
-					lightIntensity = std::min(1.0f, std::max(ambient, lightIntensity));
 
-					uint32_t shadedColor = applyIntensity(color, lightIntensity);
+					float specularIntensity = std::pow(std::max(0.0f, Math::dotProduct(reflectionVector, viewVector)), 64);
+					float diffuseIntensity = std::min(1.0f, ambient + std::max(0.0f, Math::dotProduct(interpolatedNormal, m_lightSource)));
 
-					m_frameBuffer[idx + P.x] = shadedColor;
+					uint32_t shadedColor = applyIntensity(color, diffuseIntensity);
+					uint32_t specularColor = applyIntensity(0xFFFFFFFF, specularIntensity);
+
+					uint32_t finalColor = combineColours(shadedColor, specularColor);
+
+					m_frameBuffer[idx + P.x] = finalColor;
 				}
 			}
 		}
