@@ -11,7 +11,7 @@ Entity::Entity(const Mesh* meshResource) {
 void Entity::update(float deltaTime) {
 	if (!mesh) return;
 
-	rotation.x += 1.0f * deltaTime;
+	//rotation.x += 1.0f * deltaTime;
 	rotation.y += 1.0f * deltaTime;
 
 	worldMesh.vertices.clear();

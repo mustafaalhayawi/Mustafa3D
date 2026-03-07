@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "Primitives.h"
 #include "MathUtils.h"
+#include "ObjLoader.h"
 #include <vector>
 #include <unordered_set>
 #include <algorithm>
@@ -45,18 +46,26 @@ void Renderer::clear(int color) {
 void Renderer::render(float deltaTime) {
 	clear(0xff000000);
 
-	static Mesh cubeMesh;
-	if (cubeMesh.vertices.empty()) Primitives::createCube(cubeMesh, 10.0f);
+	//static Mesh cubeMesh;
+	//if (cubeMesh.vertices.empty()) Primitives::createCube(cubeMesh, 10.0f);
 
-	static Entity redCube(&cubeMesh);
-	redCube.position = Vector3(2, -1, 10);
-	redCube.update(deltaTime);
-	drawMesh(redCube, 0xff0000ff);
+	//static Entity redCube(&cubeMesh);
+	//redCube.position = Vector3(2, -1, 10);
+	//redCube.update(deltaTime);
+	//drawMesh(redCube, 0xff0000ff);
 
-	static Entity greenCube(&cubeMesh);
-	greenCube.position = Vector3(-8, 10, 12);
-	greenCube.update(deltaTime);
-	drawMesh(greenCube, 0xff00ff00);
+	//static Entity greenCube(&cubeMesh);
+	//greenCube.position = Vector3(-8, 10, 12);
+	//greenCube.update(deltaTime);
+	//drawMesh(greenCube, 0xff00ff00);
+
+	static Mesh mesh;
+	if (mesh.vertices.empty()) loadMesh(mesh, "assets/monkey.obj");
+
+	static Entity myEntity(&mesh);
+	myEntity.position = Vector3(0, 0, 0);
+	myEntity.update(deltaTime);
+	drawMesh(myEntity, 0xff0000ff);
 }
 
 template<typename T>
