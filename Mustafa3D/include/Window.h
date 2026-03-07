@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL3/SDL.h>
+#include <utility>
 
 class Window {
 public:
@@ -7,7 +8,7 @@ public:
 	~Window();
 
 	bool isOpen() const { return !m_closed; }
-	void handleEvents();
+	void handleEvents(std::pair<int, int>& deltaMouse);
 	void presentFrame(int* frameBuffer);
 
 	int getWidth() const { return m_width; }
@@ -19,4 +20,5 @@ private:
 	SDL_Texture* m_texture;
 	int m_width, m_height;
 	bool m_closed;
+	bool m_isDragging;
 };

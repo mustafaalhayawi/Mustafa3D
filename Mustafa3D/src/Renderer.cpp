@@ -43,28 +43,14 @@ void Renderer::clear(int color) {
 	}
 }
 
-void Renderer::render(float deltaTime) {
+void Renderer::render(float deltaTime, std::pair<int, int> deltaMouse) {
 	clear(0xff000000);
-
-	//static Mesh cubeMesh;
-	//if (cubeMesh.vertices.empty()) Primitives::createCube(cubeMesh, 10.0f);
-
-	//static Entity redCube(&cubeMesh);
-	//redCube.position = Vector3(2, -1, 10);
-	//redCube.update(deltaTime);
-	//drawMesh(redCube, 0xff0000ff);
-
-	//static Entity greenCube(&cubeMesh);
-	//greenCube.position = Vector3(-8, 10, 12);
-	//greenCube.update(deltaTime);
-	//drawMesh(greenCube, 0xff00ff00);
-
 	static Mesh mesh;
 	if (mesh.vertices.empty()) loadMesh(mesh, "assets/monkey.obj");
 
 	static Entity myEntity(&mesh);
 	myEntity.position = Vector3(0, 0, 0);
-	myEntity.update(deltaTime);
+	myEntity.update(deltaTime, deltaMouse);
 	drawMesh(myEntity, 0xff0000ff);
 }
 
@@ -356,7 +342,7 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, uint32_t color) {
 
 					float ambient = 0.2f;
 
-					float specularIntensity = std::pow(std::max(0.0f, Math::dotProduct(reflectionVector, viewVector)), 64);
+					float specularIntensity = (float)std::pow(std::max(0.0f, Math::dotProduct(reflectionVector, viewVector)), 128);
 					float diffuseIntensity = std::min(1.0f, ambient + std::max(0.0f, Math::dotProduct(interpolatedNormal, m_lightSource)));
 
 					uint32_t shadedColor = applyIntensity(color, diffuseIntensity);

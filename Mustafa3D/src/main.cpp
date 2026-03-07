@@ -18,13 +18,14 @@ void runLoop(Window& window, Renderer& renderer) {
 	{
 		Uint64 startTick = SDL_GetTicks();
 		float deltaTime = (startTick - lastTime) / 1000.0f;
+		std::pair<int, int> deltaMouse;
 		lastTime = startTick;
 
-		window.handleEvents();
-		renderer.render(deltaTime);
+		window.handleEvents(deltaMouse);
+		renderer.render(deltaTime, deltaMouse);
 		window.presentFrame(renderer.getBuffer());
 
-		Uint64 endTick = SDL_GetTicks();
+		Uint64 endTick = SDL_GetTicksNS();
 		Uint64 frameDuration = endTick - startTick;
 
 		if (frameDuration < FRAME_DELAY) {

@@ -10,7 +10,7 @@ public:
 	~Renderer();
 
 	void clear(int color);
-	void render(float deltaTime);
+	void render(float deltaTime, std::pair<int, int> deltaMouse);
 	int* getBuffer() { return m_frameBuffer; }
 
 private:

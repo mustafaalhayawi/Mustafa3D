@@ -1,4 +1,5 @@
 #include "Window.h"
+#include <iostream>
 
 Window::Window(const char* title, int width, int height)
 	: m_width(width),
@@ -6,7 +7,8 @@ Window::Window(const char* title, int width, int height)
 	  m_window(nullptr),
 	  m_renderer(nullptr),
 	  m_texture(nullptr),
-	  m_closed(false)
+	  m_closed(false),
+	  m_isDragging(false)
 {
 	m_window = SDL_CreateWindow("Mustafa3D", m_width, m_height, 0);
 	m_renderer = SDL_CreateRenderer(m_window, NULL);
@@ -26,11 +28,16 @@ Window::~Window() {
 	}
 }
 
-void Window::handleEvents() {
+void Window::handleEvents(std::pair<int, int>& deltaMouse) {
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
 		if (e.type == SDL_EVENT_QUIT) m_closed = true;
 		if (e.type == SDL_EVENT_KEY_UP && e.key.key == SDLK_ESCAPE) m_closed = true;
+		if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) m_isDragging = true;
+		else if (e.type == SDL_EVENT_MOUSE_BUTTON_UP) m_isDragging = false;
+		if (m_isDragging && e.type == SDL_EVENT_MOUSE_MOTION) {
+			deltaMouse = std::pair<int, int>(e.motion.xrel, e.motion.yrel);
+		}
 	}
 }
 
