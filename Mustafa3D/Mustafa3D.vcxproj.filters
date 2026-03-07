@@ -63,4 +63,7 @@
   <ItemGroup>
     <None Include=".wakatime-project" />
   </ItemGroup>
+  <ItemGroup>
+    <Object Include="..\..\..\..\OneDrive\Documents\Python Scripts\flatmonkey.obj" />
+  </ItemGroup>
 </Project>

@@ -60,7 +60,7 @@ void Renderer::render(float deltaTime) {
 	//drawMesh(greenCube, 0xff00ff00);
 
 	static Mesh mesh;
-	if (mesh.vertices.empty()) loadMesh(mesh, "assets/monkey.obj");
+	if (mesh.vertices.empty()) loadMesh(mesh, "assets/flatmonkey.obj");
 
 	static Entity myEntity(&mesh);
 	myEntity.position = Vector3(0, 0, 0);

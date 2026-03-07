@@ -28,36 +28,72 @@ void loadMesh(Mesh& outMesh, std::string fileName)
 		}
 		else if (prefix == "f") {
 			std::vector<Vertex> faceVertices;
+			std::vector<int> faceTypes;
 
 			std::string vertexData;
 			while (iss >> vertexData) {
 				std::stringstream vss(vertexData);
 				std::string vIdxStr, vnIdxStr;
 
-				std::getline(vss, vIdxStr, '/');
+				if (vertexData.find('/') != std::string::npos) {
+					// vertex data has at least one '/'
+					faceTypes.push_back(0);
 
-				if (vss.peek() == '/') vss.ignore();
+					std::getline(vss, vIdxStr, '/');
 
-				std::getline(vss, vnIdxStr);
+					if (vss.peek() == '/') vss.ignore();
 
-				int vIdx = std::stoi(vIdxStr) - 1;
-				int vnIdx = std::stoi(vnIdxStr) - 1;
-				
-				if (vIdx >= 0 && vIdx < (int)positions.size() &&
-					vnIdx >= 0 && vnIdx < (int)normals.size()) {
-					Vertex v = { positions[vIdx], normals[vnIdx] };
-					faceVertices.emplace_back(v);
+					std::getline(vss, vnIdxStr);
+
+					int vIdx = std::stoi(vIdxStr) - 1;
+					int vnIdx = std::stoi(vnIdxStr) - 1;
+
+					if (vIdx >= 0 && vIdx < (int)positions.size() &&
+						vnIdx >= 0 && vnIdx < (int)normals.size()) {
+						Vertex v = { positions[vIdx], normals[vnIdx] };
+						faceVertices.emplace_back(v);
+					}
+				}
+				else {
+					// vertex data has no '/'
+					faceTypes.push_back(1);
+
+					std::getline(vss, vIdxStr, ' ');
+
+					int vIdx = std::stoi(vIdxStr) - 1;
+
+					if (vIdx >= 0 && vIdx < (int)positions.size()) {
+						Vertex v;
+						v.position = positions[vIdx];
+						faceVertices.emplace_back(v);
+					}
 				}
 			}
 
 			for (size_t i = 1; i < faceVertices.size() - 1; ++i) {
-				int startIdx = outMesh.vertices.size();
+				size_t startIdx = outMesh.vertices.size();
+
+				if (faceTypes[i] == 0) {
+					// vertices have position and normal vectors
+
+				}
+				else if (faceTypes[i] == 1) {
+					// vertices have only position vectors
+					Vector3 edgeA = faceVertices[0].position - faceVertices[1].position;
+					Vector3 edgeB = faceVertices[1].position - faceVertices[2].position;
+					Vector3 normal = Math::crossProduct(edgeA, edgeB);
+					normal = Math::normalise(normal);
+					
+					faceVertices[0].normal = normal;
+					faceVertices[i].normal = normal;
+					faceVertices[i + 1].normal = normal;
+				}
 
 				outMesh.vertices.emplace_back(faceVertices[0]);
 				outMesh.vertices.emplace_back(faceVertices[i]);
 				outMesh.vertices.emplace_back(faceVertices[i + 1]);
 
-				Triangle t = { startIdx + 2, startIdx + 1, startIdx };
+				Triangle t = { (unsigned int)(startIdx + 2), (unsigned int)(startIdx + 1), (unsigned int)startIdx };
 				outMesh.triangles.emplace_back(t);
 			}
 		}
