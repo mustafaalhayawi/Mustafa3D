@@ -6,7 +6,7 @@ struct ScreenPosition {
 	float z;
 };
 
-int edgeFunction(ScreenPosition point1, ScreenPosition point2, ScreenPosition point3);
+int edgeFunction(ScreenPosition A, ScreenPosition B, ScreenPosition C);
 
 struct Vector3 {
 	float x, y, z;
@@ -45,15 +45,13 @@ struct Vector3 {
 	}
 };
 
-// currently contains only a position vector but will later contain a normal vector
 struct Vertex {
 	Vector3 position;
+	Vector3 normal;
 };
 
-// normal vector goes in triangle for now for flat shading but will go in vertex later for smooth shading
 struct Triangle {
 	unsigned int vertex1, vertex2, vertex3;
-	Vector3 normal;
 };
 
 struct Mesh {

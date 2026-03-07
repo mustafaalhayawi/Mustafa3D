@@ -17,7 +17,7 @@ private:
 	T spaceToScreen(Vector3 position);
 	void drawPixel(ScreenPosition pixel, uint32_t color);
 	void drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t color);
-	void drawTriangle(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, uint32_t color);
+	void drawTriangle(Vertex vertexA, Vertex vertexB, Vertex vertexC, uint32_t color);
 	void drawWireMesh(const Entity& entity, uint32_t color);
 	void drawMesh(const Entity& entity, uint32_t color);
 	uint32_t applyIntensity(uint32_t color, float intensity);

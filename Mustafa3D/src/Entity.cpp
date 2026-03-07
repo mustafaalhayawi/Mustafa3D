@@ -15,9 +15,7 @@ void Entity::update(float deltaTime) {
 	rotation.y += 1.0f * deltaTime;
 
 	worldMesh.vertices.clear();
-	worldMesh.normals.clear();
 	worldMesh.vertices.reserve(mesh->vertices.size());
-	worldMesh.normals.reserve(mesh->triangles.size());
 
 	// precalculate values to prevent recalculating values
 	float cosX = std::cos(rotation.x), sinX = std::sin(rotation.x);
@@ -27,50 +25,41 @@ void Entity::update(float deltaTime) {
 	// rotate vertices
 	for (const auto& vertex : mesh->vertices) {
 		Vertex v;
-		v.position = vertex.position;
 
-		Vector3 temp;
+		v.position = vertex.position;
+		v.normal = vertex.normal;
+
+		Vector3 tempPosition, tempNormal;
 
 		// rotate around x-axis
-		temp.y = v.position.y * cosX - v.position.z * sinX;
-		temp.z = v.position.y * sinX + v.position.z * cosX;
-		v.position.y = temp.y; v.position.z = temp.z;
+		tempPosition.y = v.position.y * cosX - v.position.z * sinX;
+		tempPosition.z = v.position.y * sinX + v.position.z * cosX;
+		v.position.y = tempPosition.y; v.position.z = tempPosition.z;
+
+		tempNormal.y = v.normal.y * cosX - v.normal.z * sinX;
+		tempNormal.z = v.normal.y * sinX + v.normal.z * cosX;
+		v.normal.y = tempNormal.y; v.normal.z = tempNormal.z;
 
 		// rotate around y-axis
-		temp.x = v.position.x * cosY + v.position.z * sinY;
-		temp.z = v.position.x * -sinY + v.position.z * cosY;
-		v.position.x = temp.x; v.position.z = temp.z;
+		tempPosition.x = v.position.x * cosY + v.position.z * sinY;
+		tempPosition.z = v.position.x * -sinY + v.position.z * cosY;
+		v.position.x = tempPosition.x; v.position.z = tempPosition.z;
+
+		tempNormal.x = v.normal.x * cosY + v.normal.z * sinY;
+		tempNormal.z = v.normal.x * -sinY + v.normal.z * cosY;
+		v.normal.y = tempNormal.y; v.normal.z = tempNormal.z;
 
 		// rotate around z-axis
-		temp.x = v.position.x * cosZ - v.position.y * sinZ;
-		temp.y = v.position.x * sinZ + v.position.y * cosZ;
-		v.position.x = temp.x; v.position.y = temp.y;
+		tempPosition.x = v.position.x * cosZ - v.position.y * sinZ;
+		tempPosition.y = v.position.x * sinZ + v.position.y * cosZ;
+		v.position.x = tempPosition.x; v.position.y = tempPosition.y;
+
+		tempNormal.x = v.normal.y * cosZ - v.normal.y * sinZ;
+		tempNormal.y = v.normal.y * sinZ + v.normal.y * cosZ;
+		v.normal.x = tempNormal.x; v.normal.y = tempNormal.y;
 
 		v.position = v.position + position;
 
 		worldMesh.vertices.push_back(v);
-	}
-
-	// rotate normals which are currently stored in triangles
-	for (const auto& triangle : mesh->triangles) {
-		Vector3 n = triangle.normal;
-		Vector3 temp;
-
-		// rotate around x-axis
-		temp.y = n.y * cosX - n.z * sinX;
-		temp.z = n.y * sinX + n.z * cosX;
-		n.y = temp.y; n.z = temp.z;
-
-		// rotate around y-axis
-		temp.x = n.x * cosY + n.z * sinY;
-		temp.z = n.x * -sinY + n.z * cosY;
-		n.x = temp.x; n.z = temp.z;
-
-		// rotate around z-axis
-		temp.x = n.x * cosZ - n.y * sinZ;
-		temp.y = n.x * sinZ + n.y * cosZ;
-		n.x = temp.x; n.y = temp.y;
-
-		worldMesh.normals.push_back(n);
 	}
 }

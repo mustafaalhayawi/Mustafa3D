@@ -1,5 +1,5 @@
 #include "Geometry.h"
 
-int edgeFunction(ScreenPosition point1, ScreenPosition point2, ScreenPosition point3) {
-	return (point2.x - point1.x) * (point3.y - point1.y) - (point2.y - point1.y) * (point3.x - point1.x);
+int edgeFunction(ScreenPosition A, ScreenPosition B, ScreenPosition C) {
+	return (B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x);
 }

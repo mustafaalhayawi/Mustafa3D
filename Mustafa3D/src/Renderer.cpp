@@ -49,12 +49,12 @@ void Renderer::render(float deltaTime) {
 	if (cubeMesh.vertices.empty()) Primitives::createCube(cubeMesh, 10.0f);
 
 	static Entity redCube(&cubeMesh);
-	redCube.position = Vector3(2, -1, 0);
+	redCube.position = Vector3(2, -1, 10);
 	redCube.update(deltaTime);
 	drawMesh(redCube, 0xff0000ff);
 
 	static Entity greenCube(&cubeMesh);
-	greenCube.position = Vector3(-5, 7, -10);
+	greenCube.position = Vector3(-8, 10, 12);
 	greenCube.update(deltaTime);
 	drawMesh(greenCube, 0xff00ff00);
 }
@@ -144,134 +144,197 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t c
 	}
 }
 
-// todo: use a lambda function to make code non-repetitive
-void Renderer::drawTriangle(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, uint32_t color) {
-	Vector3 v0 = spaceToScreen<Vector3>(vertexA);
-	Vector3 v1 = spaceToScreen<Vector3>(vertexB);
-	Vector3 v2 = spaceToScreen<Vector3>(vertexC);
+// previous rasteriser using scanline
+//void Renderer::drawTriangle(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, uint32_t color) {
+//	Vector3 v0 = spaceToScreen<Vector3>(vertexA);
+//	Vector3 v1 = spaceToScreen<Vector3>(vertexB);
+//	Vector3 v2 = spaceToScreen<Vector3>(vertexC);
+//
+//	v0.z = 1.0f / v0.z;
+//	v1.z = 1.0f / v1.z;
+//	v2.z = 1.0f / v2.z;
+//
+//	// sort the vertices in descending order of y values
+//	if (v0.y > v1.y) std::swap(v0, v1);
+//	if (v0.y > v2.y) std::swap(v0, v2);
+//	if (v1.y > v2.y) std::swap(v1, v2);
+//
+//	float dy_total = (v2.y - v0.y); // total height of the triangle
+//
+//	if (std::abs(dy_total) < 0.0001f) return;
+//
+//	float long_dxdy = (v2.x - v0.x) / dy_total;
+//	
+//	float dy_middle = (v1.y - v0.y);
+//
+//	Vector3 vMidL = v1;
+//	Vector3 vMidR;
+//	vMidR.x = v0.x + (dy_middle * long_dxdy);
+//	vMidR.y = v1.y;
+//	vMidR.z = v0.z + (dy_middle * ((v2.z - v0.z) / dy_total));
+//
+//	if (vMidL.x > vMidR.x) std::swap(vMidL, vMidR);
+//
+//	float top_height = (float)(vMidL.y - v0.y);
+//
+//	if (top_height > 0.5f)
+//	{
+//		float dxdy_left = (vMidL.x - v0.x) / top_height;
+//		float dxdy_right = (vMidR.x - v0.x) / top_height;
+//
+//		float dinvZdy_left = (vMidL.z - v0.z) / top_height;
+//		float dinvZdy_right = (vMidR.z - v0.z) / top_height;
+//
+//		int yStart = std::max(0, (int)std::ceil(v0.y));
+//		int yEnd = std::min(m_height, (int)std::ceil(vMidL.y));
+//
+//		float yPrestep = (float)(yStart - v0.y);
+//
+//		float x_left_cur = v0.x + (dxdy_left * yPrestep);
+//		float x_right_cur = v0.x + (dxdy_right * yPrestep);
+//		float invZ_left_cur = v0.z + (dinvZdy_left * yPrestep);
+//		float invZ_right_cur = v0.z + (dinvZdy_right * yPrestep);
+//
+//		for (int y = yStart; y < yEnd; y++) {
+//			int startX = std::max(0, std::min(m_width, (int)std::ceil(x_left_cur)));
+//			int endX = std::max(0, std::min(m_width, (int)std::ceil(x_right_cur)));
+//
+//			float x_range = (float)(x_right_cur - x_left_cur);
+//
+//			float invZ_step = (x_range > 0.0f) ? ((invZ_right_cur - invZ_left_cur) / x_range) : 0.0f;
+//
+//			float xPrestep = (float)startX - x_left_cur;
+//			float currentInvZ = invZ_left_cur + (invZ_step * xPrestep);
+//
+//			int idx = y * m_width;
+//			for (int x = startX; x < endX; x++) {
+//				// z-buffering
+//				 // index of the current pixel in the z_buffer vector
+//				if (currentInvZ > m_zBuffer[x+idx]) {
+//					m_zBuffer[x+idx] = currentInvZ;
+//					m_frameBuffer[x+idx] = color;
+//				}
+//
+//				currentInvZ += invZ_step;
+//			}
+//
+//			x_left_cur += dxdy_left;
+//			x_right_cur += dxdy_right;
+//			invZ_left_cur += dinvZdy_left;
+//			invZ_right_cur += dinvZdy_right;
+//		}
+//	}
+//
+//	float bot_height = (float)(v2.y - vMidL.y);
+//
+//	if (bot_height > 0.5f)
+//	{
+//		float dxdy_left = (v2.x - vMidL.x) / bot_height;
+//		float dxdy_right = (v2.x - vMidR.x) / bot_height;
+//
+//		float dinvZdy_left = (v2.z - vMidL.z) / bot_height;
+//		float dinvZdy_right = (v2.z - vMidR.z) / bot_height;
+//
+//		int yStart = std::max(0, (int)std::ceil(vMidL.y));
+//		int yEnd = std::min(m_height, (int)std::ceil(v2.y));
+//
+//		float yPrestep = (float)(yStart - vMidL.y);
+//
+//		float x_left_cur = vMidL.x + (dxdy_left * yPrestep);
+//		float x_right_cur = vMidR.x + (dxdy_right * yPrestep);
+//		float invZ_left_cur = vMidL.z + (dinvZdy_left * yPrestep);
+//		float invZ_right_cur = vMidR.z + (dinvZdy_right * yPrestep);
+//
+//		for (int y = yStart; y < yEnd; y++) {
+//			int startX = std::max(0, std::min(m_width, (int)std::ceil(x_left_cur)));
+//			int endX = std::max(0, std::min(m_width, (int)std::ceil(x_right_cur)));
+//
+//			float x_range = (float)(x_right_cur - x_left_cur);
+//
+//			float invZ_step = (x_range > 0.0f) ? ((invZ_right_cur - invZ_left_cur) / x_range) : 0.0f;
+//
+//			float xPrestep = (float)startX - x_left_cur;
+//			float currentInvZ = invZ_left_cur + (invZ_step * xPrestep);
+//
+//			int idx = y * m_width;
+//			for (int x = startX; x < endX; x++) {
+//				// z-buffering
+//				 // index of the current pixel in the z_buffer vector
+//				if (currentInvZ > m_zBuffer[x+idx]) {
+//					m_zBuffer[x+idx] = currentInvZ;
+//					m_frameBuffer[x+idx] = color;
+//				}
+//
+//				currentInvZ += invZ_step;
+//			}
+//
+//			x_left_cur += dxdy_left;
+//			x_right_cur += dxdy_right;
+//			invZ_left_cur += dinvZdy_left;
+//			invZ_right_cur += dinvZdy_right;
+//		}
+//	}
+//}
 
-	v0.z = 1.0f / v0.z;
-	v1.z = 1.0f / v1.z;
-	v2.z = 1.0f / v2.z;
+void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, uint32_t color) {
+	ScreenPosition v0 = spaceToScreen(A.position);
+	ScreenPosition v1 = spaceToScreen(B.position);
+	ScreenPosition v2 = spaceToScreen(C.position);
 
-	// sort the vertices in descending order of y values
-	if (v0.y > v1.y) std::swap(v0, v1);
-	if (v0.y > v2.y) std::swap(v0, v2);
-	if (v1.y > v2.y) std::swap(v1, v2);
+	// create bounding box based on triangle
+	int minX = std::min({ v0.x, v1.x, v2.x });
+	int minY = std::min({ v0.y, v1.y, v2.y });
+	int maxX = std::max({ v0.x, v1.x, v2.x });
+	int maxY = std::max({ v0.y, v1.y, v2.y });
 
-	float dy_total = (v2.y - v0.y); // total height of the triangle
+	// clip bounding box with screen boundaries
+	minX = std::max(0, minX);
+	minY = std::max(0, minY);
+	maxX = std::min(maxX, m_width - 1);
+	maxY = std::min(maxY, m_height - 1);
 
-	if (std::abs(dy_total) < 0.0001f) return;
+	// area of triangle
+	int totalArea = edgeFunction(v0, v1, v2);
+	if (totalArea == 0) return;
+	float invTotalArea = 1.0f / totalArea;
 
-	float long_dxdy = (v2.x - v0.x) / dy_total;
-	
-	float dy_middle = (v1.y - v0.y);
+	// get depths of vertices of triangle
+	float A_invZ = 1.0f / v0.z;
+	float B_invZ = 1.0f / v1.z;
+	float C_invZ = 1.0f / v2.z;
 
-	Vector3 vMidL = v1;
-	Vector3 vMidR;
-	vMidR.x = v0.x + (dy_middle * long_dxdy);
-	vMidR.y = v1.y;
-	vMidR.z = v0.z + (dy_middle * ((v2.z - v0.z) / dy_total));
+	ScreenPosition P;
+	for (P.y = minY; P.y <= maxY; P.y++) {
+		int idx = P.y * m_width;
+		for (P.x = minX; P.x <= maxX; P.x++) {
+			int w0 = edgeFunction(v0, v1, P);
+			int w1 = edgeFunction(v1, v2, P);
+			int w2 = edgeFunction(v2, v0, P);
 
-	if (vMidL.x > vMidR.x) std::swap(vMidL, vMidR);
+			// todo: create a top-left fill rule to prent overdraw
+			if (totalArea < 0 && w0 <= 0 && w1 <= 0 && w2 <= 0) {
+				float fw0 = (float)w1 * invTotalArea;
+				float fw1 = (float)w2 * invTotalArea;
+				float fw2 = (float)w0 * invTotalArea;
 
-	float top_height = (float)(vMidL.y - v0.y);
+				float interpolatedInvZ = (A_invZ * fw0) + (B_invZ * fw1) + (C_invZ * fw2);
 
-	if (top_height > 0.5f)
-	{
-		float dxdy_left = (vMidL.x - v0.x) / top_height;
-		float dxdy_right = (vMidR.x - v0.x) / top_height;
+				Vector3 perspectiveNormal = (A.normal * A_invZ * fw0) + (B.normal * B_invZ * fw1) + (C.normal * C_invZ * fw2);
+				perspectiveNormal = perspectiveNormal / interpolatedInvZ;
+				Vector3 interpolatedNormal = Math::normalise(perspectiveNormal);
 
-		float dinvZdy_left = (vMidL.z - v0.z) / top_height;
-		float dinvZdy_right = (vMidR.z - v0.z) / top_height;
+				if (interpolatedInvZ > m_zBuffer[idx + P.x]) {
+					m_zBuffer[idx + P.x] = interpolatedInvZ;
 
-		int yStart = std::max(0, (int)std::ceil(v0.y));
-		int yEnd = std::min(m_height, (int)std::ceil(vMidL.y));
+					float lightIntensity = Math::dotProduct(interpolatedNormal, m_lightSource);
+					float ambient = 0.2f;
+					lightIntensity = std::min(1.0f, std::max(ambient, lightIntensity));
 
-		float yPrestep = (float)(yStart - v0.y);
+					uint32_t shadedColor = applyIntensity(color, lightIntensity);
 
-		float x_left_cur = v0.x + (dxdy_left * yPrestep);
-		float x_right_cur = v0.x + (dxdy_right * yPrestep);
-		float invZ_left_cur = v0.z + (dinvZdy_left * yPrestep);
-		float invZ_right_cur = v0.z + (dinvZdy_right * yPrestep);
-
-		for (int y = yStart; y < yEnd; y++) {
-			int startX = std::max(0, std::min(m_width, (int)std::ceil(x_left_cur)));
-			int endX = std::max(0, std::min(m_width, (int)std::ceil(x_right_cur)));
-
-			float x_range = (float)(x_right_cur - x_left_cur);
-
-			float invZ_step = (x_range > 0.0f) ? ((invZ_right_cur - invZ_left_cur) / x_range) : 0.0f;
-
-			float xPrestep = (float)startX - x_left_cur;
-			float currentInvZ = invZ_left_cur + (invZ_step * xPrestep);
-
-			int idx = y * m_width;
-			for (int x = startX; x < endX; x++) {
-				// z-buffering
-				 // index of the current pixel in the z_buffer vector
-				if (currentInvZ > m_zBuffer[x+idx]) {
-					m_zBuffer[x+idx] = currentInvZ;
-					m_frameBuffer[x+idx] = color;
+					m_frameBuffer[idx + P.x] = shadedColor;
 				}
-
-				currentInvZ += invZ_step;
 			}
-
-			x_left_cur += dxdy_left;
-			x_right_cur += dxdy_right;
-			invZ_left_cur += dinvZdy_left;
-			invZ_right_cur += dinvZdy_right;
-		}
-	}
-
-	float bot_height = (float)(v2.y - vMidL.y);
-
-	if (bot_height > 0.5f)
-	{
-		float dxdy_left = (v2.x - vMidL.x) / bot_height;
-		float dxdy_right = (v2.x - vMidR.x) / bot_height;
-
-		float dinvZdy_left = (v2.z - vMidL.z) / bot_height;
-		float dinvZdy_right = (v2.z - vMidR.z) / bot_height;
-
-		int yStart = std::max(0, (int)std::ceil(vMidL.y));
-		int yEnd = std::min(m_height, (int)std::ceil(v2.y));
-
-		float yPrestep = (float)(yStart - vMidL.y);
-
-		float x_left_cur = vMidL.x + (dxdy_left * yPrestep);
-		float x_right_cur = vMidR.x + (dxdy_right * yPrestep);
-		float invZ_left_cur = vMidL.z + (dinvZdy_left * yPrestep);
-		float invZ_right_cur = vMidR.z + (dinvZdy_right * yPrestep);
-
-		for (int y = yStart; y < yEnd; y++) {
-			int startX = std::max(0, std::min(m_width, (int)std::ceil(x_left_cur)));
-			int endX = std::max(0, std::min(m_width, (int)std::ceil(x_right_cur)));
-
-			float x_range = (float)(x_right_cur - x_left_cur);
-
-			float invZ_step = (x_range > 0.0f) ? ((invZ_right_cur - invZ_left_cur) / x_range) : 0.0f;
-
-			float xPrestep = (float)startX - x_left_cur;
-			float currentInvZ = invZ_left_cur + (invZ_step * xPrestep);
-
-			int idx = y * m_width;
-			for (int x = startX; x < endX; x++) {
-				// z-buffering
-				 // index of the current pixel in the z_buffer vector
-				if (currentInvZ > m_zBuffer[x+idx]) {
-					m_zBuffer[x+idx] = currentInvZ;
-					m_frameBuffer[x+idx] = color;
-				}
-
-				currentInvZ += invZ_step;
-			}
-
-			x_left_cur += dxdy_left;
-			x_right_cur += dxdy_right;
-			invZ_left_cur += dinvZdy_left;
-			invZ_right_cur += dinvZdy_right;
 		}
 	}
 }
@@ -303,12 +366,8 @@ void Renderer::drawWireMesh(const Entity& entity, uint32_t color) {
 
 void Renderer::drawMesh(const Entity& entity, uint32_t color) {
 	for (size_t i = 0; i < entity.mesh->triangles.size(); i++) {
-		float dot = Math::dotProduct(entity.worldMesh.normals[i], m_lightSource); // the normal and m_lightSource are already unit vectors (normalised)
-		float ambient = 0.2f;
-		float lightIntensity = std::min(1.0f, std::max(0.0f, dot) + ambient);
-
 		const auto& triangle = entity.mesh->triangles[i];
 
-		drawTriangle(entity.worldMesh.vertices[triangle.vertex1].position, entity.worldMesh.vertices[triangle.vertex2].position, entity.worldMesh.vertices[triangle.vertex3].position, applyIntensity(color, lightIntensity));
+		drawTriangle(entity.worldMesh.vertices[triangle.vertex1], entity.worldMesh.vertices[triangle.vertex2], entity.worldMesh.vertices[triangle.vertex3], color);
 	}
 }

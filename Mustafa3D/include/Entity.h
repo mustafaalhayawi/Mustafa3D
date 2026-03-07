@@ -3,7 +3,6 @@
 
 struct WorldMesh {
 	std::vector<Vertex> vertices;
-	std::vector<Vector3> normals;
 };
 
 struct Entity {

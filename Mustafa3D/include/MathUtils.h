@@ -41,7 +41,7 @@ namespace Math {
 		return result;
 	}
 
-	inline Vector3 crossProduct(Vector3 vector1, Vector3 vector2) {
+	inline Vector3 crossProduct(const Vector3& vector1, const Vector3& vector2) {
 		Vector3 result;
 
 		result.x = vector1.y * vector2.z - vector1.z * vector2.y;
@@ -51,15 +51,15 @@ namespace Math {
 		return result;
 	}
 
-	inline float dotProduct(Vector3 vector1, Vector3 vector2) {
+	inline float dotProduct(const Vector3& vector1, const Vector3& vector2) {
 		return vector1.x * vector2.x + vector1.y * vector2.y + vector1.z * vector2.z;
 	}
 
-	inline float getMagnitude(Vector3 vector) {
+	inline float getMagnitude(const Vector3& vector) {
 		return sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
 	}
 
-	inline Vector3 normalise(Vector3 vector) {
+	inline Vector3 normalise(const Vector3& vector) {
 		return vector / getMagnitude(vector);
 	}
 }

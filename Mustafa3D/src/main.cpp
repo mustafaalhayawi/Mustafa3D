@@ -5,11 +5,11 @@
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
-const float CAMERA_DISTANCE = 25.0f;
+const float CAMERA_DISTANCE = 10.0f;
 const float FOV = 90.0f;
 const int TARGET_FPS = 60;
 const int FRAME_DELAY = 1000 / TARGET_FPS;
-const Vector3 LIGHT_SOURCE = Vector3(1, 0, 1);
+const Vector3 LIGHT_SOURCE = Vector3(-1, 0, -2);
 
 void runLoop(Window& window, Renderer& renderer) {
 	Uint64 lastTime = SDL_GetTicks();

@@ -1,52 +1,52 @@
 #include "Primitives.h"
 
 void Primitives::createCube(Mesh& outMesh, float size) {
-	float half_size = size / 2;
+	float h = size / 2.0f;
 
-	std::vector<Vertex> vertices;
+	std::vector<Vertex> vertices(24);
+	std::vector<Triangle> triangles(12);
 
-	for (int i = 0; i < 8; i++) {
-		Vertex newVertex;
-		newVertex.position = Vector3(0, 0, 0);
-
-		if (i & 1) newVertex.position = newVertex.position + Vector3(half_size, 0, 0);
-		else newVertex.position = newVertex.position - Vector3(half_size, 0, 0);
-		if (i & 2) newVertex.position = newVertex.position + Vector3(0, half_size, 0);
-		else newVertex.position = newVertex.position - Vector3(0, half_size, 0);
-		if (i & 4) newVertex.position = newVertex.position + Vector3(0, 0, half_size);
-		else newVertex.position = newVertex.position - Vector3(0, 0, half_size);
-
-		vertices.push_back(newVertex);
-	}
-
-	std::vector<int> indices = {
-		0, 1, 2,	2, 1, 3,
-		5, 4, 7,	7, 4, 6,
-		1, 5, 3,	3, 5, 7,
-		4, 0, 6,	6, 0, 2,
-		2, 3, 6,	3, 7, 6,
-		4, 5, 0,	0, 5, 1
+	struct FaceData {
+		Vector3 normal;
+		Vector3 positions[4];
 	};
 
-	std::vector<Triangle> triangles;
+	FaceData faces[6] = {
+		// front face
+		{ Vector3(0, 0, -1), { Vector3(-h, -h, -h), Vector3(h, -h, -h), Vector3(h,  h, -h), Vector3(-h,  h, -h) } },
+		// back face
+		{ Vector3(0, 0,  1), { Vector3(h, -h,  h), Vector3(-h, -h,  h), Vector3(-h,  h,  h), Vector3(h,  h,  h) } },
+		// left face
+		{ Vector3(-1, 0, 0), { Vector3(-h,  h,  h), Vector3(-h, -h,  h), Vector3(-h, -h, -h), Vector3(-h,  h, -h) } },
+		// right face
+		{ Vector3(1, 0, 0), { Vector3(h,  h, -h), Vector3(h, -h, -h), Vector3(h, -h,  h), Vector3(h,  h,  h) } },
+		// top face
+		{ Vector3(0,  1, 0), { Vector3(-h,  h,  h), Vector3(-h,  h, -h), Vector3(h,  h, -h), Vector3(h,  h,  h) } },
+		// bottom face
+		{ Vector3(0, -1, 0), { Vector3(-h, -h, -h), Vector3(-h, -h,  h), Vector3(h, -h,  h), Vector3(h, -h, -h) } }
+	};
 
-	for (int i = 0; i < 36; i += 3) {
-		Triangle newTriangle;
+	int vertexIndex = 0, triangleIndex = 0;
 
-		int index1 = indices[i];
-		int index2 = indices[i + 1];
-		int index3 = indices[i + 2];
+	for (int i = 0; i < 6; i++) {
+		int startIdx = vertexIndex;
 
-		newTriangle.vertex1 = index1;
-		newTriangle.vertex2 = index2;
-		newTriangle.vertex3 = index3;
+		for (int j = 0; j < 4; j++) {
+			Vertex v;
+			v.position = faces[i].positions[j];
+			v.normal = faces[i].normal;
+			vertices[vertexIndex++] = v;
+		}
 
-		Vector3 vectorA = vertices[index2].position - vertices[index1].position;
-		Vector3 vectorB = vertices[index3].position - vertices[index1].position;
+		triangles[triangleIndex].vertex1 = startIdx;
+		triangles[triangleIndex].vertex2 = startIdx + 1;
+		triangles[triangleIndex].vertex3 = startIdx + 2;
+		triangleIndex++;
 
-		newTriangle.normal = Math::normalise(Math::crossProduct(vectorA, vectorB));
-
-		triangles.push_back(newTriangle);
+		triangles[triangleIndex].vertex1 = startIdx;
+		triangles[triangleIndex].vertex2 = startIdx + 2;
+		triangles[triangleIndex].vertex3 = startIdx + 3;
+		triangleIndex++;
 	}
 
 	outMesh.vertices = vertices;
