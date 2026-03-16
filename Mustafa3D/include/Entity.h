@@ -1,5 +1,6 @@
 #pragma once
-#include "Geometry.h"
+#include "Mesh.h"
+#include <cmath>
 
 struct WorldMesh {
 	std::vector<Vertex> vertices;

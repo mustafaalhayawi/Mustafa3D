@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include <SDL3/SDL.h>
 #include <cmath>
+#include <iostream> // temp
 
 class Renderer {
 public:
@@ -18,11 +19,12 @@ private:
 	T spaceToScreen(Vector3 position);
 	void drawPixel(ScreenPosition pixel, uint32_t color);
 	void drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t color);
-	void drawTriangle(Vertex vertexA, Vertex vertexB, Vertex vertexC, uint32_t color);
+	void drawTriangle(Vertex vertexA, Vertex vertexB, Vertex vertexC, const Material* color);
 	void drawWireMesh(const Entity& entity, uint32_t color);
-	void drawMesh(const Entity& entity, uint32_t color);
+	void drawMesh(const Entity& entity);
 	uint32_t applyIntensity(uint32_t color, float intensity);
 	uint32_t combineColours(uint32_t color1, uint32_t color2);
+	uint32_t packColor(const Vector3& color);
 	
 	int* m_frameBuffer;
 	std::vector<float> m_zBuffer;

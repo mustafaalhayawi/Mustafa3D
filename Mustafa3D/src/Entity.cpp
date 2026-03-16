@@ -1,5 +1,4 @@
 #include "Entity.h"
-#include "MathUtils.h"
 
 Entity::Entity(const Mesh* meshResource) {
 	mesh = meshResource;
@@ -28,6 +27,7 @@ void Entity::update(float deltaTime, std::pair<int, int> deltaMouse) {
 
 		v.position = vertex.position;
 		v.normal = vertex.normal;
+		v.uv = vertex.uv;
 
 		Vector3 tempPosition, tempNormal;
 

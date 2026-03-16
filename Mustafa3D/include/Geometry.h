@@ -45,16 +45,35 @@ struct Vector3 {
 	}
 };
 
-struct Vertex {
-	Vector3 position;
-	Vector3 normal;
-};
+struct Vector2 {
+	float x, y;
 
-struct Triangle {
-	unsigned int vertex1, vertex2, vertex3;
-};
+	Vector3 operator+(const Vector2& vector) const {
+		Vector3 result;
+		result.x = this->x + vector.x;
+		result.y = this->y + vector.y;
+		return result;
+	}
 
-struct Mesh {
-	std::vector<Vertex> vertices;
-	std::vector<Triangle> triangles;
+	Vector3 operator-(const Vector2& vector) const {
+		Vector3 result;
+		result.x = this->x - vector.x;
+		result.y = this->y - vector.y;
+		return result;
+	}
+
+	Vector3 operator*(const float scalar) const {
+		Vector3 result;
+		result.x = this->x * scalar;
+		result.y = this->y * scalar;
+		return result;
+	}
+
+	Vector3 operator/(const float scalar) const {
+		Vector3 result;
+		float inverse = 1 / scalar;
+		result.x = this->x * inverse;
+		result.y = this->y * inverse;
+		return result;
+	}
 };

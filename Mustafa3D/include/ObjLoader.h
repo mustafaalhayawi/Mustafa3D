@@ -1,7 +1,9 @@
 #pragma once
 #include <vector>
 #include <string>
-#include "Geometry.h"
+#include "Mesh.h"
 #include "MathUtils.h"
+#include "Material.h"
+#include <iostream> // temp
 
-void loadMesh(Mesh& outMesh, std::string fileName);
+void loadMesh(Mesh& outMesh, std::string objFileName, std::string rasterFileName);

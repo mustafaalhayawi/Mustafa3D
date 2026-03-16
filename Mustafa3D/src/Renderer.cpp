@@ -23,7 +23,7 @@ Renderer::Renderer(int width, int height, float camera_distance, Vector3 light_s
 	: m_width(width),
 	  m_height(height),
 	  m_cameraDistance(camera_distance),
-	  m_lightSource(light_source / Math::getMagnitude(light_source)), // normalise the light source vector
+	  m_lightSource(Math::normalise(light_source)), // normalise the light source vector
 	  m_zBuffer(width * height, 0.0f),
 	  m_projectionScale(1.0f / tan(FOV * (Math::pi / 180.0f) / 2)),
 	  m_aspectRatio((float)m_height / (float)m_width)
@@ -46,12 +46,14 @@ void Renderer::clear(int color) {
 void Renderer::render(float deltaTime, std::pair<int, int> deltaMouse) {
 	clear(0xff000000);
 	static Mesh mesh;
-	if (mesh.vertices.empty()) loadMesh(mesh, "assets/monkey.obj");
+	if (mesh.vertices.empty()) loadMesh(mesh, "assets/policecar/Car5_Police.obj", "assets/policecar/car5_police.png");
+
+	//std::cout << mesh.vertices[0].uv.x << "\n";
 
 	static Entity myEntity(&mesh);
-	myEntity.position = Vector3(0, 0, 0);
+	myEntity.position = Vector3(0, -1, 4);
 	myEntity.update(deltaTime, deltaMouse);
-	drawMesh(myEntity, 0xff0000ff);
+	drawMesh(myEntity);
 }
 
 template<typename T>
@@ -112,6 +114,15 @@ uint32_t Renderer::combineColours(uint32_t color1, uint32_t color2) {
 	b = std::min(255, b);
 
 	return (0xFF000000) | (r << 16) | (g << 8) | b;
+}
+
+uint32_t Renderer::packColor(const Vector3& color) {
+	uint32_t r = (uint32_t)(std::max(0.0f, std::min(1.0f, color.x)) * 255.0f);
+	uint32_t g = (uint32_t)(std::max(0.0f, std::min(1.0f, color.y)) * 255.0f);
+	uint32_t b = (uint32_t)(std::max(0.0f, std::min(1.0f, color.z)) * 255.0f);
+	uint32_t a = 255;
+
+	return (a << 24) | (r << 16) | (g << 8) | b;
 }
 
 // Bresenham's line algorithm 
@@ -284,7 +295,7 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t c
 //	}
 //}
 
-void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, uint32_t color) {
+void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* material) {
 	ScreenPosition v0 = spaceToScreen(A.position);
 	ScreenPosition v1 = spaceToScreen(B.position);
 	ScreenPosition v2 = spaceToScreen(C.position);
@@ -310,6 +321,8 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, uint32_t color) {
 	float A_invZ = 1.0f / v0.z;
 	float B_invZ = 1.0f / v1.z;
 	float C_invZ = 1.0f / v2.z;
+
+	bool useTexture = (material != nullptr && material->diffuseMap != nullptr);
 
 	ScreenPosition P;
 	for (P.y = minY; P.y <= maxY; P.y++) {
@@ -338,14 +351,41 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, uint32_t color) {
 					Vector3 interpolatedWorldPos = perspectivePos / interpolatedInvZ;
 					Vector3 viewVector = Math::normalise(Vector3(0, 0, -m_cameraDistance) - interpolatedWorldPos);
 
-					Vector3 reflectionVector = interpolatedNormal * 2 * Math::dotProduct(interpolatedNormal, m_lightSource) - m_lightSource;
+					Vector3 lightDirection = Math::normalise(m_lightSource - interpolatedWorldPos);
 
+					float specularIntensity = 0.0f;
+
+					float dotNL = Math::dotProduct(interpolatedNormal, lightDirection);
+					if (dotNL > 0.0f) {
+						Vector3 reflectionVector = interpolatedNormal * 2 * dotNL - lightDirection;
+						float specularIntensity = (float)std::pow(std::max(0.0f, Math::dotProduct(reflectionVector, viewVector)), 128);
+					}
+					
 					float ambient = 0.2f;
+					//float diffuseIntensity = std::abs(Math::dotProduct(interpolatedNormal, lightDirection));
+					float diffuseIntensity = std::min(1.0f, ambient + std::max(0.0f, Math::dotProduct(interpolatedNormal, lightDirection)));
+					//float diffuseIntensity = 1.0f;
 
-					float specularIntensity = (float)std::pow(std::max(0.0f, Math::dotProduct(reflectionVector, viewVector)), 128);
-					float diffuseIntensity = std::min(1.0f, ambient + std::max(0.0f, Math::dotProduct(interpolatedNormal, m_lightSource)));
+					Vector3 color;
+					
+					if (useTexture) {
+						float interpolatedU = (A.uv.x * A_invZ * fw0) + (B.uv.x * B_invZ * fw1) + (C.uv.x * C_invZ * fw2);
+						float interpolatedV = (A.uv.y * A_invZ * fw0) + (B.uv.y * B_invZ * fw1) + (C.uv.y * C_invZ * fw2);
 
-					uint32_t shadedColor = applyIntensity(color, diffuseIntensity);
+						float finalU = interpolatedU / interpolatedInvZ;
+						float finalV = interpolatedV / interpolatedInvZ;
+
+						color = material->diffuseMap->getColor(finalU, finalV);
+						//std::cout << finalU << " " << finalV << "\n";
+						//std::cout << B.uv.x << "\n";
+						//color = Vector3(finalU, finalV, 0.0f);
+						//color = Vector3(0.5f, 0.5f, 0.5f);
+					}
+					else {
+						color = material->diffuse;
+					}
+
+					uint32_t shadedColor = applyIntensity(packColor(color), diffuseIntensity);
 					uint32_t specularColor = applyIntensity(0xFFFFFFFF, specularIntensity);
 
 					uint32_t finalColor = combineColours(shadedColor, specularColor);
@@ -382,10 +422,10 @@ void Renderer::drawWireMesh(const Entity& entity, uint32_t color) {
 	}
 }
 
-void Renderer::drawMesh(const Entity& entity, uint32_t color) {
+void Renderer::drawMesh(const Entity& entity) {
 	for (size_t i = 0; i < entity.mesh->triangles.size(); i++) {
 		const auto& triangle = entity.mesh->triangles[i];
 
-		drawTriangle(entity.worldMesh.vertices[triangle.vertex1], entity.worldMesh.vertices[triangle.vertex2], entity.worldMesh.vertices[triangle.vertex3], color);
+		drawTriangle(entity.worldMesh.vertices[triangle.vertex1], entity.worldMesh.vertices[triangle.vertex2], entity.worldMesh.vertices[triangle.vertex3], entity.mesh->material);
 	}
 }

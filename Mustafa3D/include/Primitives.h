@@ -1,5 +1,5 @@
 #pragma once
-#include "Geometry.h"
+#include "Mesh.h"
 #include "MathUtils.h"
 
 namespace Primitives {
