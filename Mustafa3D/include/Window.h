@@ -2,13 +2,23 @@
 #include <SDL3/SDL.h>
 #include <utility>
 
+
+struct MovementKeys {
+	bool up = false;
+	bool down = false;
+	bool left = false;
+	bool right = false;
+	bool forward = false;
+	bool backward = false;
+};
+
 class Window {
 public:
 	Window(const char* title, int width, int height);
 	~Window();
 
 	bool isOpen() const { return !m_closed; }
-	void handleEvents(std::pair<int, int>& deltaMouse);
+	void handleEvents(std::pair<int, int>& deltaMouse, MovementKeys& movementKeys);
 	void presentFrame(int* frameBuffer);
 
 	int getWidth() const { return m_width; }

@@ -1,12 +1,4 @@
 #include "Renderer.h"
-#include "Primitives.h"
-#include "MathUtils.h"
-#include "ObjLoader.h"
-#include <vector>
-#include <unordered_set>
-#include <algorithm>
-#include <utility>
-#include <type_traits>
 
 namespace {
 	struct EdgeHash {
@@ -19,10 +11,10 @@ namespace {
 	};
 }
 
-Renderer::Renderer(int width, int height, float camera_distance, Vector3 light_source, float FOV)
+Renderer::Renderer(int width, int height, Vector3 camera, Vector3 light_source, float FOV)
 	: m_width(width),
 	  m_height(height),
-	  m_cameraDistance(camera_distance),
+	  m_camera(camera),
 	  m_lightSource(Math::normalise(light_source)), // normalise the light source vector
 	  m_zBuffer(width * height, 0.0f),
 	  m_projectionScale(1.0f / tan(FOV * (Math::pi / 180.0f) / 2)),
@@ -43,12 +35,18 @@ void Renderer::clear(int color) {
 	}
 }
 
-void Renderer::render(float deltaTime, std::pair<int, int> deltaMouse) {
+void Renderer::render(float deltaTime, std::pair<int, int> deltaMouse, MovementKeys movementKeys) {
 	clear(0xff000000);
 	static Mesh mesh;
-	if (mesh.vertices.empty()) loadMesh(mesh, "assets/policecar/Car5_Police.obj", "assets/policecar/car5_police.png");
+	//if (mesh.vertices.empty()) loadMesh(mesh, "assets/policecar/Car5_Police.obj", "assets/policecar/car5_police.png");
+	if (mesh.vertices.empty()) loadMesh(mesh, "assets/monkey.obj", "");
 
-	//std::cout << mesh.vertices[0].uv.x << "\n";
+	if (movementKeys.up && !movementKeys.down) m_camera.y += deltaTime * m_speed;
+	else if (movementKeys.down && !movementKeys.up) m_camera.y -= deltaTime * m_speed;
+	if (movementKeys.left && !movementKeys.right) m_camera.x -= deltaTime * m_speed;
+	else if (movementKeys.right && !movementKeys.left) m_camera.x += deltaTime * m_speed;
+	if (movementKeys.forward && !movementKeys.backward) m_camera.z += deltaTime * m_speed;
+	else if (movementKeys.backward && !movementKeys.forward) m_camera.z -= deltaTime * m_speed;
 
 	static Entity myEntity(&mesh);
 	myEntity.position = Vector3(0, -1, 4);
@@ -60,21 +58,24 @@ template<typename T>
 T Renderer::spaceToScreen(Vector3 position) {
 	T screenPosition;
 
-	float z_depth = position.z + m_cameraDistance;
+	float localX = position.x - m_camera.x;
+	float localY = position.y - m_camera.y;
+	float localZ = position.z - m_camera.z;
 
-	if (z_depth < 1.0f) {
-		z_depth = 1.0f;
+	if (localZ < 0.1f) {
+		screenPosition.z = -1.0f;
+		return screenPosition;
 	}
 
-	float normalizedX = (position.x / z_depth) * m_projectionScale * m_aspectRatio;
-	float normalizedY = (position.y / z_depth) * m_projectionScale;
+	float normalizedX = (localX / localZ) * m_projectionScale * m_aspectRatio;
+	float normalizedY = (localY / localZ) * m_projectionScale;
 
 	float finalX = (normalizedX + 1.0f) * 0.5f * m_width;
 	float finalY = (1.0f - normalizedY) * 0.5f * m_height;
 
 	screenPosition.x = static_cast<decltype(screenPosition.x)>(finalX);
-	screenPosition.y = static_cast<decltype(screenPosition.y)> (finalY);
-	screenPosition.z = z_depth;
+	screenPosition.y = static_cast<decltype(screenPosition.y)>(finalY);
+	screenPosition.z = localZ;
 
 	return screenPosition;
 }
@@ -349,7 +350,7 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* materi
 
 					Vector3 perspectivePos = (A.position * A_invZ * fw0) + (B.position * B_invZ * fw1) + (C.position * C_invZ * fw2);
 					Vector3 interpolatedWorldPos = perspectivePos / interpolatedInvZ;
-					Vector3 viewVector = Math::normalise(Vector3(0, 0, -m_cameraDistance) - interpolatedWorldPos);
+					Vector3 viewVector = Math::normalise(m_camera - interpolatedWorldPos);
 
 					Vector3 lightDirection = Math::normalise(m_lightSource - interpolatedWorldPos);
 
@@ -358,7 +359,7 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* materi
 					float dotNL = Math::dotProduct(interpolatedNormal, lightDirection);
 					if (dotNL > 0.0f) {
 						Vector3 reflectionVector = interpolatedNormal * 2 * dotNL - lightDirection;
-						float specularIntensity = (float)std::pow(std::max(0.0f, Math::dotProduct(reflectionVector, viewVector)), 128);
+						specularIntensity = (float)std::pow(std::max(0.0f, Math::dotProduct(reflectionVector, viewVector)), material->shininess);
 					}
 					
 					float ambient = 0.2f;

@@ -119,9 +119,9 @@ void loadMesh(Mesh& outMesh, std::string objFileName, std::string rasterFileName
 
 	Material* material = new Material();
 
-	material->ambient = Vector3(0.1, 0.1, 0.1);
-	material->diffuse = Vector3(0.7, 0.7, 0.7);
-	material->specular = Vector3(0.5, 0.5, 0.5);
+	material->ambient = Vector3(0.0, 0.0, 0.1);
+	material->diffuse = Vector3(0.0, 0.0, 0.7);
+	material->specular = Vector3(1.0, 1.0, 1.0);
 	material->shininess = 32.0f;
 
 	if (rasterFileName != "") {

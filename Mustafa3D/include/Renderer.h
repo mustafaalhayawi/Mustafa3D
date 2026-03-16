@@ -1,17 +1,25 @@
 #pragma once
 #include "Geometry.h"
 #include "Entity.h"
+#include "Primitives.h"
+#include "MathUtils.h"
+#include "ObjLoader.h"
+#include "Window.h"
 #include <SDL3/SDL.h>
 #include <cmath>
-#include <iostream> // temp
+#include <vector>
+#include <unordered_set>
+#include <algorithm>
+#include <utility>
+#include <type_traits>
 
 class Renderer {
 public:
-	Renderer(int width, int height, float camera_distance, Vector3 light_source, float FOV);
+	Renderer(int width, int height, Vector3 camera, Vector3 light_source, float FOV);
 	~Renderer();
 
 	void clear(int color);
-	void render(float deltaTime, std::pair<int, int> deltaMouse);
+	void render(float deltaTime, std::pair<int, int> deltaMouse, MovementKeys movementKeys);
 	int* getBuffer() { return m_frameBuffer; }
 
 private:
@@ -29,8 +37,9 @@ private:
 	int* m_frameBuffer;
 	std::vector<float> m_zBuffer;
 	int m_width, m_height;
-	float m_cameraDistance;
+	Vector3 m_camera;
 	Vector3 m_lightSource;
 	float m_projectionScale;
 	float m_aspectRatio;
+	float m_speed = 5.0f;
 };

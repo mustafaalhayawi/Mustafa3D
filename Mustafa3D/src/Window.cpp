@@ -28,17 +28,29 @@ Window::~Window() {
 	}
 }
 
-void Window::handleEvents(std::pair<int, int>& deltaMouse) {
+void Window::handleEvents(std::pair<int, int>& deltaMouse, MovementKeys& movementKeys) {
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
 		if (e.type == SDL_EVENT_QUIT) m_closed = true;
-		if (e.type == SDL_EVENT_KEY_UP && e.key.key == SDLK_ESCAPE) m_closed = true;
 		if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) m_isDragging = true;
 		else if (e.type == SDL_EVENT_MOUSE_BUTTON_UP) m_isDragging = false;
+
 		if (m_isDragging && e.type == SDL_EVENT_MOUSE_MOTION) {
-			deltaMouse = std::pair<int, int>(e.motion.xrel, e.motion.yrel);
+			deltaMouse.first += e.motion.xrel;
+			deltaMouse.second += e.motion.yrel;
 		}
 	}
+
+	const bool* state = SDL_GetKeyboardState(NULL);
+
+	movementKeys.forward = state[SDL_SCANCODE_W];
+	movementKeys.backward = state[SDL_SCANCODE_S];
+	movementKeys.left = state[SDL_SCANCODE_A];
+	movementKeys.right = state[SDL_SCANCODE_D];
+	movementKeys.up = state[SDL_SCANCODE_E];
+	movementKeys.down = state[SDL_SCANCODE_Q];
+
+	if (state[SDL_SCANCODE_ESCAPE]) m_closed = true;
 }
 
 void Window::presentFrame(int* frameBuffer) {
