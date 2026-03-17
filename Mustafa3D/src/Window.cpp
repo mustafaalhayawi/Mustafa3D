@@ -49,6 +49,10 @@ void Window::handleEvents(std::pair<int, int>& deltaMouse, MovementKeys& movemen
 	movementKeys.right = state[SDL_SCANCODE_D];
 	movementKeys.up = state[SDL_SCANCODE_E];
 	movementKeys.down = state[SDL_SCANCODE_Q];
+	movementKeys.rotateLeft = state[SDL_SCANCODE_LEFT];
+	movementKeys.rotateRight = state[SDL_SCANCODE_RIGHT];
+	movementKeys.rotateUp = state[SDL_SCANCODE_UP];
+	movementKeys.rotateDown = state[SDL_SCANCODE_DOWN];
 
 	if (state[SDL_SCANCODE_ESCAPE]) m_closed = true;
 }

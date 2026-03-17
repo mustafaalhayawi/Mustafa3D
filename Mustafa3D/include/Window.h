@@ -10,6 +10,10 @@ struct MovementKeys {
 	bool right = false;
 	bool forward = false;
 	bool backward = false;
+	bool rotateLeft = false;
+	bool rotateRight = false;
+	bool rotateUp = false;
+	bool rotateDown = false;
 };
 
 class Window {

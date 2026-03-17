@@ -11,14 +11,12 @@ namespace {
 	};
 }
 
-Renderer::Renderer(int width, int height, Vector3 camera, Vector3 light_source, float FOV)
+Renderer::Renderer(int width, int height, Camera camera, Vector3 light_source)
 	: m_width(width),
 	  m_height(height),
 	  m_camera(camera),
 	  m_lightSource(Math::normalise(light_source)), // normalise the light source vector
-	  m_zBuffer(width * height, 0.0f),
-	  m_projectionScale(1.0f / tan(FOV * (Math::pi / 180.0f) / 2)),
-	  m_aspectRatio((float)m_height / (float)m_width)
+	  m_zBuffer(width * height, 0.0f)
 {
 	m_frameBuffer = new int[width * height];
 }
@@ -41,43 +39,13 @@ void Renderer::render(float deltaTime, std::pair<int, int> deltaMouse, MovementK
 	//if (mesh.vertices.empty()) loadMesh(mesh, "assets/policecar/Car5_Police.obj", "assets/policecar/car5_police.png");
 	if (mesh.vertices.empty()) loadMesh(mesh, "assets/monkey.obj", "");
 
-	if (movementKeys.up && !movementKeys.down) m_camera.y += deltaTime * m_speed;
-	else if (movementKeys.down && !movementKeys.up) m_camera.y -= deltaTime * m_speed;
-	if (movementKeys.left && !movementKeys.right) m_camera.x -= deltaTime * m_speed;
-	else if (movementKeys.right && !movementKeys.left) m_camera.x += deltaTime * m_speed;
-	if (movementKeys.forward && !movementKeys.backward) m_camera.z += deltaTime * m_speed;
-	else if (movementKeys.backward && !movementKeys.forward) m_camera.z -= deltaTime * m_speed;
+	m_camera.update(movementKeys, deltaTime);
 
 	static Entity myEntity(&mesh);
 	myEntity.position = Vector3(0, -1, 4);
-	myEntity.update(deltaTime, deltaMouse);
+	myEntity.rotation = Vector3(0, 2, 0);
+	myEntity.update(deltaTime);
 	drawMesh(myEntity);
-}
-
-template<typename T>
-T Renderer::spaceToScreen(Vector3 position) {
-	T screenPosition;
-
-	float localX = position.x - m_camera.x;
-	float localY = position.y - m_camera.y;
-	float localZ = position.z - m_camera.z;
-
-	if (localZ < 0.1f) {
-		screenPosition.z = -1.0f;
-		return screenPosition;
-	}
-
-	float normalizedX = (localX / localZ) * m_projectionScale * m_aspectRatio;
-	float normalizedY = (localY / localZ) * m_projectionScale;
-
-	float finalX = (normalizedX + 1.0f) * 0.5f * m_width;
-	float finalY = (1.0f - normalizedY) * 0.5f * m_height;
-
-	screenPosition.x = static_cast<decltype(screenPosition.x)>(finalX);
-	screenPosition.y = static_cast<decltype(screenPosition.y)>(finalY);
-	screenPosition.z = localZ;
-
-	return screenPosition;
 }
 
 void Renderer::drawPixel(ScreenPosition pixel, uint32_t color) {
@@ -297,9 +265,9 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t c
 //}
 
 void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* material) {
-	ScreenPosition v0 = spaceToScreen(A.position);
-	ScreenPosition v1 = spaceToScreen(B.position);
-	ScreenPosition v2 = spaceToScreen(C.position);
+	ScreenPosition v0 = m_camera.spaceToScreen(A.position, m_width, m_height);
+	ScreenPosition v1 = m_camera.spaceToScreen(B.position, m_width, m_height);
+	ScreenPosition v2 = m_camera.spaceToScreen(C.position, m_width, m_height);
 
 	// create bounding box based on triangle
 	int minX = std::min({ v0.x, v1.x, v2.x });
@@ -350,7 +318,7 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* materi
 
 					Vector3 perspectivePos = (A.position * A_invZ * fw0) + (B.position * B_invZ * fw1) + (C.position * C_invZ * fw2);
 					Vector3 interpolatedWorldPos = perspectivePos / interpolatedInvZ;
-					Vector3 viewVector = Math::normalise(m_camera - interpolatedWorldPos);
+					Vector3 viewVector = Math::normalise(m_camera.position - interpolatedWorldPos);
 
 					Vector3 lightDirection = Math::normalise(m_lightSource - interpolatedWorldPos);
 
@@ -390,7 +358,7 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* materi
 					uint32_t specularColor = applyIntensity(0xFFFFFFFF, specularIntensity);
 
 					uint32_t finalColor = combineColours(shadedColor, specularColor);
-
+ 
 					m_frameBuffer[idx + P.x] = finalColor;
 				}
 			}
@@ -404,7 +372,7 @@ void Renderer::drawWireMesh(const Entity& entity, uint32_t color) {
 	std::vector<ScreenPosition> screenPositions;
 	screenPositions.reserve(entity.worldMesh.vertices.size());
 	for (const auto& vertex : entity.worldMesh.vertices) {
-		screenPositions.push_back(spaceToScreen(vertex.position));
+		screenPositions.push_back(m_camera.spaceToScreen(vertex.position, m_width, m_height));
 	}
 
 	for (const auto& triangle : entity.mesh->triangles) {

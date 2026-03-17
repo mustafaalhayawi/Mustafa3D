@@ -1,10 +1,9 @@
 #pragma once
-#include "Geometry.h"
 #include "Entity.h"
 #include "Primitives.h"
 #include "MathUtils.h"
 #include "ObjLoader.h"
-#include "Window.h"
+#include "Camera.h"
 #include <SDL3/SDL.h>
 #include <cmath>
 #include <vector>
@@ -15,7 +14,7 @@
 
 class Renderer {
 public:
-	Renderer(int width, int height, Vector3 camera, Vector3 light_source, float FOV);
+	Renderer(int width, int height, Camera camera, Vector3 light_source);
 	~Renderer();
 
 	void clear(int color);
@@ -23,8 +22,6 @@ public:
 	int* getBuffer() { return m_frameBuffer; }
 
 private:
-	template<typename T = ScreenPosition>
-	T spaceToScreen(Vector3 position);
 	void drawPixel(ScreenPosition pixel, uint32_t color);
 	void drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t color);
 	void drawTriangle(Vertex vertexA, Vertex vertexB, Vertex vertexC, const Material* color);
@@ -37,9 +34,7 @@ private:
 	int* m_frameBuffer;
 	std::vector<float> m_zBuffer;
 	int m_width, m_height;
-	Vector3 m_camera;
+	Camera m_camera;
 	Vector3 m_lightSource;
-	float m_projectionScale;
-	float m_aspectRatio;
 	float m_speed = 5.0f;
 };

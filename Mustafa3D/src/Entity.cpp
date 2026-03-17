@@ -7,11 +7,8 @@ Entity::Entity(const Mesh* meshResource) {
 	rotation = Vector3(0, 0, 0);
 }
 
-void Entity::update(float deltaTime, std::pair<int, int> deltaMouse) {
+void Entity::update(float deltaTime) {
 	if (!mesh) return;
-
-	rotation.x += deltaMouse.second / 100.0f;
-	rotation.y -= deltaMouse.first / 100.0f;
 
 	worldMesh.vertices.clear();
 	worldMesh.vertices.reserve(mesh->vertices.size());

@@ -17,5 +17,5 @@ struct Entity {
 	Entity() : mesh(nullptr), position{ 0,0,0 }, rotation{ 0,0,0 } {}
 	Entity(const Mesh* meshResource);
 
-	void update(float deltaTime, std::pair<int, int> deltaMouse);
+	void update(float deltaTime);
 };

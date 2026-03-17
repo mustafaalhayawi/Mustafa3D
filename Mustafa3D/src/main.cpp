@@ -1,14 +1,14 @@
 #include "Window.h"
 #include "Renderer.h"
+#include "Camera.h"
 #include <SDL3/SDL.h>
-#include "Geometry.h"
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 const float FOV = 60.0f;
 const int TARGET_FPS = 30;
 const int FRAME_DELAY = 1000 / TARGET_FPS;
-const Vector3 CAMERA = Vector3(-1.0f, 1.0f, -2.5f);
+const Vector3 CAMERA_POSITION = Vector3(-1.0f, 1.0f, -2.5f);
 const Vector3 LIGHT_SOURCE = Vector3(-1.0f, 0.0f, -10.0f);
 
 void runLoop(Window& window, Renderer& renderer) {
@@ -41,7 +41,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	Window window("Mustafa3D", WINDOW_WIDTH, WINDOW_HEIGHT);
-	Renderer renderer(WINDOW_WIDTH, WINDOW_HEIGHT, CAMERA, LIGHT_SOURCE, FOV);
+	Camera camera(CAMERA_POSITION, 0.0f, 0.0f, FOV);
+	Renderer renderer(WINDOW_WIDTH, WINDOW_HEIGHT, camera, LIGHT_SOURCE);
 
 	runLoop(window, renderer);
 
