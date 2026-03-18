@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include <iostream> // temp
 
 namespace {
 	struct EdgeHash {
@@ -27,6 +28,8 @@ Renderer::~Renderer()
 }
 
 void Renderer::clear(int color) {
+	// clear the frame buffer (the screen) by making all pixels the color given
+	// clear the zBuffer too
 	for (int i = 0; i < m_width * m_height; i++) {
 		m_frameBuffer[i] = color;
 		m_zBuffer[i] = 0.0f;
@@ -49,6 +52,7 @@ void Renderer::render(float deltaTime, std::pair<int, int> deltaMouse, MovementK
 }
 
 void Renderer::drawPixel(ScreenPosition pixel, uint32_t color) {
+	// outdated function because I realised that updating the frame buffer directly is more efficient
 	if (pixel.x < 0 ||
 		pixel.y < 0 ||
 		pixel.x >= m_width ||
@@ -86,6 +90,7 @@ uint32_t Renderer::combineColours(uint32_t color1, uint32_t color2) {
 }
 
 uint32_t Renderer::packColor(const Vector3& color) {
+	// turns a Vector3 with floating values 0-1 for rgb into a uint32_t
 	uint32_t r = (uint32_t)(std::max(0.0f, std::min(1.0f, color.x)) * 255.0f);
 	uint32_t g = (uint32_t)(std::max(0.0f, std::min(1.0f, color.y)) * 255.0f);
 	uint32_t b = (uint32_t)(std::max(0.0f, std::min(1.0f, color.z)) * 255.0f);
@@ -132,142 +137,13 @@ void Renderer::drawLine(ScreenPosition pixel1, ScreenPosition pixel2, uint32_t c
 	}
 }
 
-// previous rasteriser using scanline
-//void Renderer::drawTriangle(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, uint32_t color) {
-//	Vector3 v0 = spaceToScreen<Vector3>(vertexA);
-//	Vector3 v1 = spaceToScreen<Vector3>(vertexB);
-//	Vector3 v2 = spaceToScreen<Vector3>(vertexC);
-//
-//	v0.z = 1.0f / v0.z;
-//	v1.z = 1.0f / v1.z;
-//	v2.z = 1.0f / v2.z;
-//
-//	// sort the vertices in descending order of y values
-//	if (v0.y > v1.y) std::swap(v0, v1);
-//	if (v0.y > v2.y) std::swap(v0, v2);
-//	if (v1.y > v2.y) std::swap(v1, v2);
-//
-//	float dy_total = (v2.y - v0.y); // total height of the triangle
-//
-//	if (std::abs(dy_total) < 0.0001f) return;
-//
-//	float long_dxdy = (v2.x - v0.x) / dy_total;
-//	
-//	float dy_middle = (v1.y - v0.y);
-//
-//	Vector3 vMidL = v1;
-//	Vector3 vMidR;
-//	vMidR.x = v0.x + (dy_middle * long_dxdy);
-//	vMidR.y = v1.y;
-//	vMidR.z = v0.z + (dy_middle * ((v2.z - v0.z) / dy_total));
-//
-//	if (vMidL.x > vMidR.x) std::swap(vMidL, vMidR);
-//
-//	float top_height = (float)(vMidL.y - v0.y);
-//
-//	if (top_height > 0.5f)
-//	{
-//		float dxdy_left = (vMidL.x - v0.x) / top_height;
-//		float dxdy_right = (vMidR.x - v0.x) / top_height;
-//
-//		float dinvZdy_left = (vMidL.z - v0.z) / top_height;
-//		float dinvZdy_right = (vMidR.z - v0.z) / top_height;
-//
-//		int yStart = std::max(0, (int)std::ceil(v0.y));
-//		int yEnd = std::min(m_height, (int)std::ceil(vMidL.y));
-//
-//		float yPrestep = (float)(yStart - v0.y);
-//
-//		float x_left_cur = v0.x + (dxdy_left * yPrestep);
-//		float x_right_cur = v0.x + (dxdy_right * yPrestep);
-//		float invZ_left_cur = v0.z + (dinvZdy_left * yPrestep);
-//		float invZ_right_cur = v0.z + (dinvZdy_right * yPrestep);
-//
-//		for (int y = yStart; y < yEnd; y++) {
-//			int startX = std::max(0, std::min(m_width, (int)std::ceil(x_left_cur)));
-//			int endX = std::max(0, std::min(m_width, (int)std::ceil(x_right_cur)));
-//
-//			float x_range = (float)(x_right_cur - x_left_cur);
-//
-//			float invZ_step = (x_range > 0.0f) ? ((invZ_right_cur - invZ_left_cur) / x_range) : 0.0f;
-//
-//			float xPrestep = (float)startX - x_left_cur;
-//			float currentInvZ = invZ_left_cur + (invZ_step * xPrestep);
-//
-//			int idx = y * m_width;
-//			for (int x = startX; x < endX; x++) {
-//				// z-buffering
-//				 // index of the current pixel in the z_buffer vector
-//				if (currentInvZ > m_zBuffer[x+idx]) {
-//					m_zBuffer[x+idx] = currentInvZ;
-//					m_frameBuffer[x+idx] = color;
-//				}
-//
-//				currentInvZ += invZ_step;
-//			}
-//
-//			x_left_cur += dxdy_left;
-//			x_right_cur += dxdy_right;
-//			invZ_left_cur += dinvZdy_left;
-//			invZ_right_cur += dinvZdy_right;
-//		}
-//	}
-//
-//	float bot_height = (float)(v2.y - vMidL.y);
-//
-//	if (bot_height > 0.5f)
-//	{
-//		float dxdy_left = (v2.x - vMidL.x) / bot_height;
-//		float dxdy_right = (v2.x - vMidR.x) / bot_height;
-//
-//		float dinvZdy_left = (v2.z - vMidL.z) / bot_height;
-//		float dinvZdy_right = (v2.z - vMidR.z) / bot_height;
-//
-//		int yStart = std::max(0, (int)std::ceil(vMidL.y));
-//		int yEnd = std::min(m_height, (int)std::ceil(v2.y));
-//
-//		float yPrestep = (float)(yStart - vMidL.y);
-//
-//		float x_left_cur = vMidL.x + (dxdy_left * yPrestep);
-//		float x_right_cur = vMidR.x + (dxdy_right * yPrestep);
-//		float invZ_left_cur = vMidL.z + (dinvZdy_left * yPrestep);
-//		float invZ_right_cur = vMidR.z + (dinvZdy_right * yPrestep);
-//
-//		for (int y = yStart; y < yEnd; y++) {
-//			int startX = std::max(0, std::min(m_width, (int)std::ceil(x_left_cur)));
-//			int endX = std::max(0, std::min(m_width, (int)std::ceil(x_right_cur)));
-//
-//			float x_range = (float)(x_right_cur - x_left_cur);
-//
-//			float invZ_step = (x_range > 0.0f) ? ((invZ_right_cur - invZ_left_cur) / x_range) : 0.0f;
-//
-//			float xPrestep = (float)startX - x_left_cur;
-//			float currentInvZ = invZ_left_cur + (invZ_step * xPrestep);
-//
-//			int idx = y * m_width;
-//			for (int x = startX; x < endX; x++) {
-//				// z-buffering
-//				 // index of the current pixel in the z_buffer vector
-//				if (currentInvZ > m_zBuffer[x+idx]) {
-//					m_zBuffer[x+idx] = currentInvZ;
-//					m_frameBuffer[x+idx] = color;
-//				}
-//
-//				currentInvZ += invZ_step;
-//			}
-//
-//			x_left_cur += dxdy_left;
-//			x_right_cur += dxdy_right;
-//			invZ_left_cur += dinvZdy_left;
-//			invZ_right_cur += dinvZdy_right;
-//		}
-//	}
-//}
-
 void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* material) {
+	// get the positions of each vertex on the screen
 	ScreenPosition v0 = m_camera.spaceToScreen(A.position, m_width, m_height);
 	ScreenPosition v1 = m_camera.spaceToScreen(B.position, m_width, m_height);
 	ScreenPosition v2 = m_camera.spaceToScreen(C.position, m_width, m_height);
+
+	if (v0.z == -1.0f || v1.z == -1.0f || v2.z == -1.0f) return;
 
 	// create bounding box based on triangle
 	int minX = std::min({ v0.x, v1.x, v2.x });
@@ -293,14 +169,22 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* materi
 
 	bool useTexture = (material != nullptr && material->diffuseMap != nullptr);
 
+	// calculate the step of each weight along x
+	int dw0_dx = v0.y - v1.y;
+	int dw1_dx = v1.y - v2.y;
+	int dw2_dx = v2.y - v0.y;
+
 	ScreenPosition P;
 	for (P.y = minY; P.y <= maxY; P.y++) {
 		int idx = P.y * m_width;
-		for (P.x = minX; P.x <= maxX; P.x++) {
-			int w0 = edgeFunction(v0, v1, P);
-			int w1 = edgeFunction(v1, v2, P);
-			int w2 = edgeFunction(v2, v0, P);
 
+		P.x = minX;
+
+		// calculate the weights, i.e. w0 is the area of the subtriangle opposite vertex 0
+		int w0 = edgeFunction(v0, v1, P);
+		int w1 = edgeFunction(v1, v2, P);
+		int w2 = edgeFunction(v2, v0, P);
+		for (P.x = minX; P.x <= maxX; P.x++) {
 			// todo: create a top-left fill rule to prent overdraw
 			if (totalArea < 0 && w0 <= 0 && w1 <= 0 && w2 <= 0) {
 				float fw0 = (float)w1 * invTotalArea;
@@ -331,9 +215,7 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* materi
 					}
 					
 					float ambient = 0.2f;
-					//float diffuseIntensity = std::abs(Math::dotProduct(interpolatedNormal, lightDirection));
 					float diffuseIntensity = std::min(1.0f, ambient + std::max(0.0f, Math::dotProduct(interpolatedNormal, lightDirection)));
-					//float diffuseIntensity = 1.0f;
 
 					Vector3 color;
 					
@@ -345,10 +227,6 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* materi
 						float finalV = interpolatedV / interpolatedInvZ;
 
 						color = material->diffuseMap->getColor(finalU, finalV);
-						//std::cout << finalU << " " << finalV << "\n";
-						//std::cout << B.uv.x << "\n";
-						//color = Vector3(finalU, finalV, 0.0f);
-						//color = Vector3(0.5f, 0.5f, 0.5f);
 					}
 					else {
 						color = material->diffuse;
@@ -362,11 +240,16 @@ void Renderer::drawTriangle(Vertex A, Vertex B, Vertex C, const Material* materi
 					m_frameBuffer[idx + P.x] = finalColor;
 				}
 			}
+
+			w0 += dw0_dx;
+			w1 += dw1_dx;
+			w2 += dw2_dx;
 		}
 	}
 }
 
 void Renderer::drawWireMesh(const Entity& entity, uint32_t color) {
+	// function may not work anymore
 	std::unordered_set<std::pair<int, int>, EdgeHash> drawnEdges;
 
 	std::vector<ScreenPosition> screenPositions;

@@ -96,7 +96,7 @@ void loadMesh(Mesh& outMesh, std::string objFileName, std::string rasterFileName
 				size_t startIdx = outMesh.vertices.size();
 
 				if (faceTypes[i] == 0 || faceTypes[i] == 2) {
-					// vertices have only position vectors
+					// vertices have only position vectors so we need to find the normal
 					Vector3 edgeA = faceVertices[0].position - faceVertices[1].position;
 					Vector3 edgeB = faceVertices[1].position - faceVertices[2].position;
 					Vector3 normal = Math::crossProduct(edgeA, edgeB);
@@ -119,9 +119,9 @@ void loadMesh(Mesh& outMesh, std::string objFileName, std::string rasterFileName
 
 	Material* material = new Material();
 
-	material->ambient = Vector3(0.0, 0.0, 0.1);
-	material->diffuse = Vector3(0.0, 0.0, 0.7);
-	material->specular = Vector3(1.0, 1.0, 1.0);
+	material->ambient = Vector3(0.0f, 0.0f, 0.1f);
+	material->diffuse = Vector3(0.0f, 0.0f, 0.7f);
+	material->specular = Vector3(1.0f, 1.0f, 1.0f);
 	material->shininess = 32.0f;
 
 	if (rasterFileName != "") {

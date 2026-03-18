@@ -26,7 +26,7 @@ void runLoop(Window& window, Renderer& renderer) {
 		renderer.render(deltaTime, deltaMouse, movementKeys);
 		window.presentFrame(renderer.getBuffer());
 
-		Uint64 endTick = SDL_GetTicksNS();
+		Uint64 endTick = SDL_GetTicks();
 		Uint64 frameDuration = endTick - startTick;
 
 		if (frameDuration < FRAME_DELAY) {

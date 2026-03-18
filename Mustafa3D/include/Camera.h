@@ -1,6 +1,7 @@
 #pragma once
 #include "MathUtils.h"
 #include "Window.h"
+#include <iostream> // temp
 
 class Camera {
 public:
@@ -39,6 +40,7 @@ template<typename T>
 T Camera::spaceToScreen(Vector3 worldPos, int screenWidth, int screenHeight) const {
 	T screenPosition;
 
+	// the position of the vertex relative to the camera
 	float localX = worldPos.x - position.x;
 	float localY = worldPos.y - position.y;
 	float localZ = worldPos.z - position.z;
@@ -51,6 +53,7 @@ T Camera::spaceToScreen(Vector3 worldPos, int screenWidth, int screenHeight) con
 
 	if (pitchedZ < 0.1f) {
 		screenPosition.z = -1.0f;
+
 		return screenPosition;
 	}
 
