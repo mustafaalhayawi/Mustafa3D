@@ -122,9 +122,11 @@ void loadMesh(Mesh& outMesh, std::string objFileName, std::string rasterFileName
 	material->ambient = Vector3(0.0f, 0.0f, 0.1f);
 	material->diffuse = Vector3(0.0f, 0.0f, 0.7f);
 	material->specular = Vector3(1.0f, 1.0f, 1.0f);
+
 	material->shininess = 32.0f;
 
-	if (rasterFileName != "") {
+	if (std::filesystem::exists(rasterFileName))
+	{
 		material->diffuseMap = new Texture(rasterFileName);
 	}
 

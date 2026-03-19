@@ -39,8 +39,8 @@ void Renderer::clear(int color) {
 void Renderer::render(float deltaTime, std::pair<int, int> deltaMouse, MovementKeys movementKeys) {
 	clear(0xff000000);
 	static Mesh mesh;
-	//if (mesh.vertices.empty()) loadMesh(mesh, "assets/policecar/Car5_Police.obj", "assets/policecar/car5_police.png");
-	if (mesh.vertices.empty()) loadMesh(mesh, "assets/monkey.obj", "");
+
+	if (mesh.vertices.empty()) loadMesh(mesh, "model/model.obj", "model/texture.png");
 
 	m_camera.update(movementKeys, deltaTime);
 

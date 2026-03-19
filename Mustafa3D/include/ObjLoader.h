@@ -4,5 +4,6 @@
 #include "Mesh.h"
 #include "MathUtils.h"
 #include "Material.h"
+#include <filesystem>
 
 void loadMesh(Mesh& outMesh, std::string objFileName, std::string rasterFileName);
